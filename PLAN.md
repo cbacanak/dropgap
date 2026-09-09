@@ -212,7 +212,9 @@ yendim" fizikten hiçbir şey ele vermiyor.
 Maliyeti: dünkü skoru saklamak.
 
 ### Aşama 4 — Mobil
-Ancak Aşama 3 sinyal verirse. Detay §6.
+**Şarta bağlı, kesin değil.** Ancak Aşama 3 sinyal verirse. Paylaşım
+gelmezse mobil hiç olmaz — mobili kesin bir gelecek olarak görmek, web
+tarafında ona hazırlık yaptırır ve kapsamı şişirir. Detay §6.
 
 ## 3. Modlar
 
@@ -279,8 +281,32 @@ kağıtta güzel duran kart telefonda bozulabilir. Yayından önce en az
   bedava yan ürünü.
 - **Backend yok.** Skor `localStorage`'da. Lider tablosu Aşama 4'e
   ertelendi; sunucu eklemek maliyet ve bakım başlatır.
-- Statik barındırma yeterli.
-- Masaüstünde fare, dokunmatikte parmak — aynı jest.
+
+### 5.1 Girdi: tek jest, tek kod yolu
+
+**Pointer olayları kullan.** Fare ve dokunmatik tek kod yolundan geçer;
+ayrı fare ve dokunma işleyicisi yazma.
+
+Masaüstünde sürükle, telefonda parmak — aynı jest. Bunu Aşama 1'de
+doğru kurmak, sonradan düzeltmekten çok daha ucuz ve mobil geçişini
+neredeyse bedava yapan şey bu.
+
+### 5.2 Barındırma
+
+**Aşama 1–2: GitHub Pages.** Backend yok, skor tarayıcıda, tek sayfa —
+fazlasıyla yeterli. İçerik dağıtım ağı üzerinden çalıştığı için siten
+zaten dünyanın her yerinden açılır; "globale açmak" diye ayrı bir işlem
+yok.
+
+**Aşama 3: Cloudflare Pages'e taşı.** Taşıma bir saatlik iş, ortada
+sadece statik dosyalar var. Gerekçe iki şey: paylaşım linkinin sosyal
+medyada kişiye özel önizleme kartı göstermesi (statik barındırmada
+üretilemez), ve ileride lider tablosu gibi sunucu tarafı ihtiyaçlar.
+
+**Alan adı: Aşama 3'te.** Önce gerekmiyor — Aşama 1'de beş kişiye kendi
+bilgisayarında gösteriyorsun. Cloudflare'de alan adı bağlama ve SSL
+otomatik. `dropgap.com` büyük ihtimalle alınmıştır; `.app`, `.game`,
+`.fun` hem müsait hem uygun.
 
 ## 6. Mobil (Aşama 4)
 
