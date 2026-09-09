@@ -1,169 +1,472 @@
-Dropgap — Plan
-Slogan: See the bounce. Guess the rest.
-Depo: dropgap · Web önce, mobil sonra.
-İsim gerekçesi: Bu kategoride isimler tarif eder, çağrıştırmaz —
-link paylaşıldığında kendini açıklaması gerekir. “Drop” ve “gap” ikisi
+# Dropgap — Plan
+
+**Slogan:** See the bounce. Guess the rest.
+
+**Depo:** `dropgap` · Web önce, mobil sonra.
+
+**İsim gerekçesi:** Bu kategoride isimler tarif eder, çağrıştırmaz —
+link paylaşıldığında kendini açıklaması gerekir. "Drop" ve "gap" ikisi
 de gerçek kelime ve mekaniği anlatıyor: düşen bir şey ve senin açtığın
 boşluk. Uydurma birleşimler (Blindspan, Arcmargin, VanishArc) zeki ama
-ne olduğunu söylemiyor. Wordle da uydurma değildi — içinde “word” var.
+ne olduğunu söylemiyor. Wordle da uydurma değildi — içinde "word" var.
+
 Slogan mekaniği üç saniyede öğretiyor; ismin tek başına yapamayacağı
 işi o yapıyor.
+
 Karar acele değil, son güne kadar değişebilir. Alan adı müsaitliğini
-Aşama 3’te kontrol et.
-0. Mekanik
+Aşama 3'te kontrol et.
+
+## 0. Mekanik
+
 Bir top yukarıdan bırakılıyor, birkaç platformdan sekiyor. Sadece ilk
 sekmeyi görüyorsun, sonra top görünmez oluyor. Nereye düşecek?
-Oyuncu altta bir kova yerleştiriyor: tek jestle hem konumunu hem
-genişliğini ayarlıyor.
-	•	Dar kova = eminim = yüksek puan
-	•	Geniş kova = emin değilim = düşük puan
-Neden kova, soyut bir aralık çubuğu değil: Aynı mekanik ama kendini
-açıklıyor. “Aralık genişliği” anlatmayı gerektirir, kova genişliği
+
+Oyuncu altta bir **kova** yerleştiriyor: tek jestle hem konumunu hem
+**genişliğini** ayarlıyor.
+
+- Dar kova = eminim = yüksek puan
+- Geniş kova = emin değilim = düşük puan
+
+**Neden kova, soyut bir aralık çubuğu değil:** Aynı mekanik ama kendini
+açıklıyor. "Aralık genişliği" anlatmayı gerektirir, kova genişliği
 gerektirmez. Öğrenme süresi sıfıra iniyor.
-Neden genişlik ayarlanabilir: Sabit genişlikte bir kova, oyunun
-bütün kimliğini siler. “Ne kadar eminsin” sorusu genişlikten geliyor;
+
+**Neden genişlik ayarlanabilir:** Sabit genişlikte bir kova, oyunun
+bütün kimliğini siler. "Ne kadar eminsin" sorusu genişlikten geliyor;
 sadece sağa sola kaydırmak onu ortadan kaldırır.
-Neden böyle: Güveni ayrı bir soru yapmak turu ikiye böler ve akışı
+
+**Neden böyle:** Güveni ayrı bir soru yapmak turu ikiye böler ve akışı
 kırar. Kova genişliği, kalibrasyonu ayrı bir adım olmaktan çıkarıp
 seçimin kendisi yapıyor. Tek jest, tek ekran, tur ~15 saniye.
-Neden top görünmez oluyor: Görünür kalsaydı oyun tahmin değil
+
+**Neden top görünmez oluyor:** Görünür kalsaydı oyun tahmin değil
 refleks olurdu. Refleksin tavanı var, tahminin yok.
-Puanlama: toleranslı
+
+### Puanlama: toleranslı
+
 İkili değil kademeli. Tam ortada / kenarda / dışarıda — üç seviye.
+
 Salt tuttu-tutmadı puanlaması oyuncuyu sürekli sıfırla bırakır ve
-oyunu sildirir. “Az kaldı” hissi devam ettiren şey.
+oyunu sildirir. "Az kaldı" hissi devam ettiren şey.
+
 Puan hâlâ kova genişliğiyle ters orantılı: dar kovada tam isabet en
 yüksek, geniş kovada tam isabet düşük.
-Fizik öğrenilebilir olmalı
+
+### Fizik öğrenilebilir olmalı
+
 Sonuç oyuncuya rastgele hissettirirse sezgisini geliştiremez ve bırakır.
 Yerçekimi, ivme ve sekme tutarlı olmalı; kaosa yaklaşan parametreler
-“sezgimle çözemiyorum” hissi yaratır ve oyunu öldürür.
+"sezgimle çözemiyorum" hissi yaratır ve oyunu öldürür.
+
 Bu, kapsam kuralı kadar bağlayıcı: her yeni tur tipi bu testten geçmeli.
-Sonsuz varyasyon: Her turda platform açıları, boyutlar ve topun
+
+**Sonsuz varyasyon:** Her turda platform açıları, boyutlar ve topun
 ağırlığı değişiyor — ama çözülebilir sınırlar içinde. Ezber işe
 yaramıyor, içerik üretmeye gerek yok. İçerik editörü yok — bu, kriter
 listesinin en önemli maddesiydi.
-0.1 Tur tipi havuzu
+
+## 0.1 Tur tipi havuzu
+
 Aynı motor, aynı jest, farklı soru. Hepsi simülasyondan türüyor — yeni
 oyun değil, aynı oyunun tur tipleri. Çeşitlilik ek içerik maliyeti
 olmadan buradan geliyor.
-Aşama 2’de sırayla eklenecek, hepsi birden değil:
-	•	Ne zaman? — çizgiye kaç saniyede ulaşır (Aşama 1’in temel turu)
-	•	Ne kadar ileri? — ekran dışına çıktıktan sonra nereye kadar gider
-	•	Nerede? — duvarın arkasından hangi noktadan çıkar
-	•	Ne kadar hızlı? — gözlemlenen hareketin hızı
-	•	Hangisi önce? — iki nesneden hangisi hedefe önce varır
-	•	Sonraki kare — animasyon durdurulur, devamı tahmin edilir
-	•	Tahmin et, sonra değiştir — tahminini yaparsın, simülasyon çalışır,
-sonucu görürsün, ardından tek bir değişkene müdahale hakkın olur.
-Fizik anlayışını öngörmekten düzeltmeye taşıyor. Aynı motor, tek
-ek kontrol.
-	•	Müdahale noktası — simülasyon ilerlerken tek bir anda müdahale
-hakkın var. Asıl soru ne yapacağın değil, ne zaman yapacağın.
-Yukarıdakinin keskin hali: müdahale sonuçtan sonra değil, sürecin
-ortasında.
-	•	Eşiği bul — sistem iki farklı sonuca gidebilir; sen sonucu değil,
-sonucun değiştiği sınırı aralıkla işaretlersin. Diğerlerinden farklı
-bir zihin işi: çıktıyı değil, çatallanma noktasını tahmin ediyorsun.
-Uyarı: eşik fazla hassas olursa oyuncu haksızlık hisseder ve
-kandırılmış hisleri oyunu bıraktırır. Eşik bandını cömert tut,
-kaosa yaklaştırma.
-	•	Hangi taraf? — aralık değil, ikili seçim. Kalibrasyon katmanını
-kaybettiği için ana tur olamaz; yalnızca ısınma/giriş turu olarak
-kullanılabilir.
+
+Aşama 2'de sırayla eklenecek, hepsi birden değil:
+
+- **Ne zaman?** — çizgiye kaç saniyede ulaşır (Aşama 1'in temel turu)
+- **Ne kadar ileri?** — ekran dışına çıktıktan sonra nereye kadar gider
+- **Nerede?** — duvarın arkasından hangi noktadan çıkar
+- **Ne kadar hızlı?** — gözlemlenen hareketin hızı
+- **Hangisi önce?** — iki nesneden hangisi hedefe önce varır
+- **Sonraki kare** — animasyon durdurulur, devamı tahmin edilir
+- **Tahmin et, sonra değiştir** — tahminini yaparsın, simülasyon çalışır,
+  sonucu görürsün, ardından tek bir değişkene müdahale hakkın olur.
+  Fizik anlayışını öngörmekten düzeltmeye taşıyor. Aynı motor, tek
+  ek kontrol.
+- **Müdahale noktası** — simülasyon ilerlerken tek bir anda müdahale
+  hakkın var. Asıl soru ne yapacağın değil, ne zaman yapacağın.
+  Yukarıdakinin keskin hali: müdahale sonuçtan sonra değil, sürecin
+  ortasında.
+- **Eşiği bul** — sistem iki farklı sonuca gidebilir; sen sonucu değil,
+  sonucun değiştiği sınırı aralıkla işaretlersin. Diğerlerinden farklı
+  bir zihin işi: çıktıyı değil, çatallanma noktasını tahmin ediyorsun.
+  *Uyarı:* eşik fazla hassas olursa oyuncu haksızlık hisseder ve
+  kandırılmış hisleri oyunu bıraktırır. Eşik bandını cömert tut,
+  kaosa yaklaştırma.
+- **Hangi taraf?** — aralık değil, ikili seçim. Kalibrasyon katmanını
+  kaybettiği için ana tur olamaz; yalnızca ısınma/giriş turu olarak
+  kullanılabilir.
+
 Kural: her yeni tur tipi aynı aralık jestiyle oynanabilmeli. Jest
 değişiyorsa tur tipi değil, başka oyundur — eklenmez.
-Havuz doldu. Bundan sonra gelecek “ne kadar / nereye / kaç tane”
+
+**Havuz doldu.** Bundan sonra gelecek "ne kadar / nereye / kaç tane"
 varyasyonları yeni mekanik değil, aynı motorun farklı parametresi.
 Sekiz tur mekanik taraması sonunda üç şartı geçen tip sayısı sekiz.
 Daha fazla tip çeşitlilik değil, dağınıklık getirir. Havuzu genişletmek
 yerine mevcut tiplerin zorluk eğrisini işle.
-1. Kapsam kuralı
-Bu dosyada yazmayan yapılmaz. Yeni fikir “Sonraki tur”a yazılır.
-Kesin kapsam dışı:
-	•	Hesap ve giriş (Aşama 3’e kadar)
-	•	Reklam
-	•	Satın alma, para birimi, kozmetik
-	•	Ses
-2. Aşamalar
-Aşama 1 — Mekanik testi (2–3 gün)
+
+## 1. Kapsam kuralı
+
+Bu dosyada yazmayan yapılmaz. Yeni fikir "Sonraki tur"a yazılır.
+
+**Kesin kapsam dışı:**
+- Hesap ve giriş (Aşama 3'e kadar)
+- Reklam
+- Satın alma, para birimi, kozmetik
+- Ses
+
+## 2. Aşamalar
+
+### Aşama 1 — Mekanik testi (2–3 gün)
 Tek tur, tek sayfa, skor yok, paylaşım yok. Sadece oynanış.
-Test: Kendin ve 5 kişi oynasın. Tek soru: “bir daha” diyorlar mı?
+
+**Test:** Kendin ve 5 kişi oynasın. Tek soru: **"bir daha" diyorlar mı?**
 Demiyorlarsa dur. Mekanik tutmadıysa günlük mod, paylaşım ve mobil
 hiçbir şeyi kurtarmaz.
+
 Bu testin tamamı 3 günlük iş. Bir hafta kod yazdıktan sonra öğrenmekten
 çok ucuz.
-Aşama 2 — Oyun döngüsü (3–5 gün)
-Sırayla eklenecek, hepsi birden değil. Her adımdan sonra oyna ve
+
+### Aşama 2 — Oyun döngüsü (3–5 gün)
+
+**Sırayla eklenecek, hepsi birden değil.** Her adımdan sonra oyna ve
 oynanışın bozulup bozulmadığına bak. Üç katman aynı anda girerse
 hangisinin işe yaradığını ayırt edemezsin.
-2a — Seans. 5 turluk seans, toplam skor. Başka hiçbir şey yok.
-Bu, Aşama 1’in tek turunun çoğaltılmış hali; temeli sağlamlaştırır.
-2b — Zorluk eğrisi: bilgiyi azalt, hızı değil. Duvar genişler, top
+
+**2a — Seans.** 5 turluk seans, toplam skor. Başka hiçbir şey yok.
+Bu, Aşama 1'in tek turunun çoğaltılmış hali; temeli sağlamlaştırır.
+
+**2b — Zorluk eğrisi: bilgiyi azalt, hızı değil.** Duvar genişler, top
 daha kısa süre görünür, ivme daha geç belli olur. Aynı fizik, daha az
 veri. Hız ve ivme artırmak refleksi zorlar; bilgi azaltmak çıkarımı
 zorlar — ve bu oyun bir çıkarım oyunu.
-Kontrol: 5. tur hâlâ adil hissettiriyor mu, yoksa keyfi mi.
-2c — Risk/ödül katmanı (§2.1). Bir buton. Seans seviyesinde
+*Kontrol:* 5. tur hâlâ adil hissettiriyor mu, yoksa keyfi mi.
+
+**2c — Risk/ödül katmanı (§2.1).** Bir buton. Seans seviyesinde
 devam et / dur kararı.
-Kontrol: Oyuncu gerçekten duruyor mu, yoksa hep sonuna kadar mı
+*Kontrol:* Oyuncu gerçekten duruyor mu, yoksa hep sonuna kadar mı
 gidiyor? Hep gidiyorsa risk yeterince acıtmıyor demektir.
-2d — İkinci tur tipi (§0.1’den bir tane). Çeşitlilik testi.
-Kontrol: Aynı jest ikinci tipte de doğal mı hissettiriyor.
-2e — Sonsuz mod. “Bir daha” dürtüsünün yaşadığı yer.
-2f — Bilgiyi satın al (§2.2). En son. Diğer katmanlar oturmadan
+
+**2d — İkinci tur tipi (§0.1'den bir tane).** Çeşitlilik testi.
+*Kontrol:* Aynı jest ikinci tipte de doğal mı hissettiriyor.
+
+**2e — Sonsuz mod.** "Bir daha" dürtüsünün yaşadığı yer.
+
+**2f — Bilgiyi satın al (§2.2).** En son. Diğer katmanlar oturmadan
 eklenirse dengeyi ölçemezsin.
-Aşama 2 testi: Bir oturumda kaç seans oynanıyor? Tek seansta
-bırakılıyorsa “bir daha” dürtüsü yok demektir.
-Durma kuralı: Bir adım oynanışı kötüleştiriyorsa geri al ve sonrakine
+
+**Aşama 2 testi:** Bir oturumda kaç seans oynanıyor? Tek seansta
+bırakılıyorsa "bir daha" dürtüsü yok demektir.
+
+**Durma kuralı:** Bir adım oynanışı kötüleştiriyorsa geri al ve sonrakine
 geçme. Katman eklemek her zaman iyileştirmez.
-2.1 Risk/ödül katmanı
+
+### 2.1 Risk/ödül katmanı
+
 Aralık genişliği tur seviyesinde bir risk kararı. Bu katman aynı kararı
 seans seviyesine taşıyor: biriken puanı al ve dur, ya da devam et ve
 hepsini riske at.
-İki katman birleşince oyun “fizik tahmini” olmaktan çıkıp kendini ne
-kadar tanıyorsun oyununa dönüşüyor — ve paylaşılabilir olan asıl şey
+
+İki katman birleşince oyun "fizik tahmini" olmaktan çıkıp **kendini ne
+kadar tanıyorsun** oyununa dönüşüyor — ve paylaşılabilir olan asıl şey
 oydu. İnsanlar puanlarını değil, kendileri hakkında öğrendiklerini
 paylaşır.
+
 Maliyeti: sıfır ek içerik, bir buton.
-2.2 Bilgiyi satın al
+
+### 2.2 Bilgiyi satın al
+
 Duvarın arkasındaki topu bir anlığına görebilirsin — ama puandan düşer.
+
 Aynı psikolojiyi üçüncü bir eksende çalıştırıyor. Oyunun temel sorusu
 artık üç yerde soruluyor: tur içinde risk (aralık genişliği), seans
 içinde risk (devam et / dur), ve bilgi seviyesi (bak / bakma).
+
 Hepsi tek soru: belirsizliği azaltmak mı, puanı korumak mı.
-Aşama 3 — Günlük mod ve paylaşım (3–5 gün)
-	•	Tohumlu rastgelelik: tarih = tohum, herkes aynı simülasyonu görüyor
-	•	Paylaşım kartı (bkz. §4)
-	•	Dünkü kendinle yarışma (§3.1)
-	•	Yayınla
-Test: 3–4 hafta. Paylaşım geliyor mu. Gelmiyorsa dur — bu kategoride
+
+### Aşama 3 — Günlük mod ve paylaşım (3–5 gün)
+- Tohumlu rastgelelik: tarih = tohum, herkes aynı simülasyonu görüyor
+- Paylaşım kartı (bkz. §4)
+- Dünkü kendinle yarışma (§3.1)
+- Yayınla
+
+**Test:** 3–4 hafta. Paylaşım geliyor mu. Gelmiyorsa dur — bu kategoride
 ürünü iyileştirerek kurtarmak işlemiyor.
-3.1 Dünkü kendinle yarışma
+
+### 3.1 Dünkü kendinle yarışma
+
 Bugünkü performansın yarınki rakibin oluyor. Günlük seansta dünkü
 skorun referans olarak gösteriliyor.
-Neden bu, plandaki bir riskin doğrudan panzehiri: §8’de “oyuncu
-kendi tavanına ulaşıp bırakır” yazılı. Sabit bir hedef tavan yaratır;
+
+**Neden bu, plandaki bir riskin doğrudan panzehiri:** §8'de "oyuncu
+kendi tavanına ulaşıp bırakır" yazılı. Sabit bir hedef tavan yaratır;
 seninle birlikte hareket eden bir hedef yaratmaz.
+
 Ayrıca kalabalık gerektirmiyor — rakip sensin. Sıfır kullanıcıyla da
 çalışıyor, ki elimizdeki durum bu.
-Paylaşımı da doğal ve spoiler’sız: “dünkü halimi 0.3 saniye farkla
-yendim” fizikten hiçbir şey ele vermiyor.
+
+Paylaşımı da doğal ve spoiler'sız: "dünkü halimi 0.3 saniye farkla
+yendim" fizikten hiçbir şey ele vermiyor.
+
 Maliyeti: dünkü skoru saklamak.
-Aşama 4 — Mobil
+
+### Aşama 4 — Mobil
 Ancak Aşama 3 sinyal verirse. Detay §6.
-3. Modlar
-Günlük — 5 tur, tek hak, tohum sabit, paylaşılabilir.
-Sonsuz — sınırsız, sıralama yok, paylaşım yok.
-Neden ikisi birden: Günlük mod tek başına “bir daha” dürtüsünü
+
+## 3. Modlar
+
+**Günlük** — 5 tur, tek hak, tohum sabit, paylaşılabilir.
+**Sonsuz** — sınırsız, sıralama yok, paylaşım yok.
+
+**Neden ikisi birden:** Günlük mod tek başına "bir daha" dürtüsünü
 öldürür — bir kere oynadın, bitti. Sonsuz mod o dürtüyü günlüğün
 değerini bozmadan karşılıyor.
-4. Paylaşım kartı
-Spoiler testi zorunlu. Wordle’ın asıl sihri günlük olması değil, o
+
+## 4. Paylaşım kartı
+
+**Spoiler testi zorunlu.** Wordle'ın asıl sihri günlük olması değil, o
 ızgaranın kelimeyi söylemeden skoru göstermesiydi. Sonuç kartı cevabı
 ele verirse arkadaşının turu biter ve zincir kırılır.
-İki boyut, iki görsel özellik. Wordle’ın ızgarası tek boyutluydu
+
+**İki boyut, iki görsel özellik.** Wordle'ın ızgarası tek boyutluydu
 (kaçıncı denemede bildin). Burada iki boyut var: ne kadar risk aldın ve
 tuttu mu. İkisini tek sembole sıkıştırmak kartı okunmaz yapar veya bir
 boyutu düşürür.
-Uzunluk = risk. İşaret = sonuç.
+
+**Uzunluk = risk. İşaret = sonuç.**
+
+```
+Yörünge #45
+
+▪️ ✅
+▪️▪️▪️▪️ ✅
+▪️ ❌
+▪️▪️ ✅
+▪️▪️▪️▪️▪️▪️ ✅
+
+×24
+```
+
+Kısa dizi = dar kova = cesur. Uzun dizi = geniş kova = temkinli.
+
+**Kartın asıl gücü silüetinde.** Cesaret şeklin kendisinde görünüyor —
+beş satırı da kısa olan biri, arkadaşının uzun satırlarının yanında
+anında fark ediliyor. Kimse "riskli oynadım" demek zorunda kalmıyor,
+kart söylüyor. Ve şekil iki farklı oyun tarzını anlatıyor: hepsi kısa
+ve bir ıska olan kart bir hikâye, hepsi uzun ve tam isabet olan kart
+başka bir hikâye.
+
+**Alttaki tek sayı toplam çarpan.** Karşılaştırılabilir tek rakam o
+olmalı, yoksa insanlar neyi kıyaslayacağını bilemez.
+
+**Spoiler kontrolü:** Fizikten hiçbir şey sızmıyor — ne süre, ne konum,
+ne yön. Kova genişliği ve isabet oyuncunun kendi kararı, simülasyonun
+cevabı değil.
+
+**Sembol seçimi Aşama 3'e bırakılıyor.** Kartın gerçek testi WhatsApp,
+X ve farklı işletim sistemlerinde nasıl render edildiği. Bazı semboller
+platformlar arasında farklı genişlikte çiziliyor ve hizalama dağılıyor.
+Unicode'da genişliği sabit olan temel geometrik şekillerle ilerle;
+kağıtta güzel duran kart telefonda bozulabilir. Yayından önce en az
+üç platformda test et.
+
+## 5. Web (Aşama 1–3)
+
+- Tek sayfa, canvas, çerçevesiz. Fizik motoru gerekmiyor — basit iki
+  boyutlu kinematik, birkaç yüz satır.
+- Tohumlu rastgelelik (deterministik PRNG). Günlük challenge bunun
+  bedava yan ürünü.
+- **Backend yok.** Skor `localStorage`'da. Lider tablosu Aşama 4'e
+  ertelendi; sunucu eklemek maliyet ve bakım başlatır.
+- Statik barındırma yeterli.
+- Masaüstünde fare, dokunmatikte parmak — aynı jest.
+
+## 6. Mobil (Aşama 4)
+
+**Önce PWA.** Oyun zaten canvas ve tek jest; native'e ihtiyaç duyduğu
+bir şey yok. Curalis'te PWA tarafını zaten kurmuşsun, o birikim burada
+doğrudan işe yarıyor.
+
+**Native ancak şu ikisinden biri gerekirse:** günlük hatırlatma bildirimi
+veya mağaza görünürlüğü. İkisi de Aşama 3 sinyal verdikten sonra
+konuşulur.
+
+Mağazaya girmek geliştirici hesabı, yıllık ücret ve inceleme süreci
+demek — sinyal yokken ödenecek bir maliyet değil.
+
+### 6.1 Mağazaya girilirse — doğrulanmış ASO notları
+
+Bu bölüm Aşama 4 içindir; erken uygulamaya çalışma. Başka bir mobil
+projede de geçerli.
+
+**Gerçekten işe yarayanlar:**
+
+- **Başlık + alt başlık + anahtar kelime alanı** en yüksek kaldıraçlı
+  alanlar; hangi aramalarda görünmeye hak kazandığını onlar belirler.
+  Başlığı anahtar kelimeyle doldurma, en iyi kelimeyi alt başlığa koy.
+- **iOS'ta açıklama metni sıralamaya girmez** — sadece insanlar için.
+  Fayda önce, özellik sonra.
+- **Yerelleştirme 2026'da ilk üç sıralama faktöründen biri.** En çok
+  atlanan, en çok getiren madde.
+- **Ekran görüntüsü metni OCR ile indeksleniyor** (2025–26 değişikliği).
+  Görsellerdeki yazı artık hem dönüşüm hem anahtar kelime alanı.
+- **Puan eşiği gerçek:** 4.0 altı görünürlüğü düşürüyor, 3.5 altı
+  öldürüyor. Ve ortalama değil **yörünge** önemli — yeni puanlar eskiden
+  daha ağır.
+- **Kötü yoruma gerçek cevap ver** (şablon değil, 24–48 saat içinde).
+  Mekanizma algoritma değil: cevap alan kullanıcılar puanlarını
+  sıklıkla yukarı çekiyor.
+- **Kurulum sonrası sinyaller belirleyici:** kalıcılık, tekrar açma,
+  kaldırma oranı. Mağaza taktikleri seni yarışa sokar, yarışı ürün
+  kazanır.
+
+**Folklor — uğraşma:**
+
+- "Her 10–14 günde bir güncelle." Kazanan kalıp sık güncellemek değil,
+  değerli güncelleyip iyi anlatmak. Boş güncelleme takvimi zaman kaybı.
+- "Apple geliştirici duyarlılığını güven sinyali olarak izler." Böyle
+  bir şey yok.
+- "Dönüşüm %25'in altındaysa sorun var." Uydurma sayı; dönüşüm trafik
+  kaynağına göre uçuk değişir, tek eşik yoktur.
+- "Az izin isteyen uygulama hızlı onaylanır." Kanıtı yok.
+
+**Riskli — yapma:**
+
+- Organize yorum toplamak App Store kurallarına aykırı ve yaptırımı
+  ağır. Arkadaşının indirip dürüst yorum yazması ayrı; "ilk 20 yorumu
+  ayarlamak" ayrı şey.
+
+**Atlanan asıl değişiklik:** Kullanıcılar hangi uygulamayı indireceğini
+giderek mağazadan önce yapay zekâya soruyor. Keşif katmanı mağazanın
+dışına taşınıyor — ASO tek başına yeterli değil.
+
+## 7. Tasarım dili
+
+**Risk geri bildirimi: çarpan, renk değil.**
+
+Kovanın üstünde tek bir rakam — kova daraldıkça büyüyor, parmağın
+altında canlı değişiyor.
+
+Renk kodlu risk uyarısı reddedildi. Üç gerekçe: bilgi zaten ekranda
+(kova dar görünüyor), renk soyut bir dil ve öğrenilmesi gerekir, ve
+karar anında uyarı vermek oyuncuyu geri çekilmeye iter — oysa oyunun
+istediği şey cesaret.
+
+Çarpan somut ("riskli" değil, "×7"), turlar arası karşılaştırılabilir,
+ve oyuncuya kendi risk eğrisini öğretiyor. Kalibrasyon oyununun asıl
+istediği şey bu.
+
+**Vurgu kararda değil sonuçta.** Dar kovayla tam isabet belirgin olsun,
+geniş kovayla tutturmak sessiz geçsin. Oyun cesareti ödüllendirdiğini
+söylemek yerine gösteriyor.
+
+**Renk yalnızca iki iş için:** tuttu / tutmadı, ve tam isabet / kenar.
+Üç durum, üç ton. Başka yerde renk yok.
+
+Genel çerçeve: sakin ve enstrüman gibi. Simülasyon zaten hareketli,
+arayüz onu bastırmamalı.
+
+- Ekranda aynı anda tek karar: aralık
+- Renk yalnızca sonucu ayırmak için (tuttu / ıskaladı)
+- Sonuç anı animasyonun kendisi olmalı, ayrı bir kutlama ekranı değil
+- Curalis'in tasarım sistemi taşınmayacak — o bir kayıt uygulamasıydı
+
+## 8. Riskler
+
+- **Fizik tahmini geniş kitleye eğlenceli gelmeyebilir.** Teknik
+  zihinlere doğal gelir. En büyük risk bu ve Aşama 1'in tüm amacı onu
+  ucuza öğrenmek.
+- **Skill ceiling.** Oyuncu kendi sınırına ulaşıp bırakabilir. Zorluk
+  eğrisi ve parametre çeşitliliği Aşama 2'de bunun için var.
+- **Kapsam patlaması.** Lider tablosu, hesap, rozet, seri takibi —
+  hepsi cazip, hepsi Aşama 4 sonrası.
+- **Gelir yok.** Bu kategori eğlence bandında (~4 dolar RPM) ve reklamla
+  kazanmıyor. Beklenti ilgi ve öğrenme olmalı, aylık gelir değil.
+  Gelir arayışı ayrı yürütülecek.
+
+### 8.1 Değerlendirilip reddedilen gelir modelleri
+
+Kayıt için — bu öneriler tekrar gelirse baştan tartışılmasın.
+
+- **Ödüllü reklamla tekrar deneme** ("kovayı büyütmek için video izle").
+  Günlük modun tek hak kuralını bozar; paylaşılan skor anlamını
+  yitirir ve yayılma zinciri kırılır. Gelir mekaniği, ürünün tek
+  dağıtım mekanizmasını kesiyor.
+- **Hipercasual reklam modeli.** iOS izleme kısıtlarından sonra reklam
+  geliri %15–25 düştü ve model kullanıcı edinme bütçesi gerektiriyor.
+  Milyonlarca oturumda çalışır, tek kişilik geliştiricide çalışmaz.
+- **Kozmetik ekonomi** (top rengi, iz efekti, kova tasarımı). Hepsi
+  üretilecek varlık — birinci kuralı ("içerik editörü gerektirmeyecek")
+  arka kapıdan ihlal eder. Ayrıca büyük kullanıcı tabanı olmadan
+  anlamsız.
+
+## 8.2 Gelir modeli — eğer sinyal gelirse
+
+Aşama 3'ten önce hiçbiri yapılmayacak. Sinyal yoksa gelir konuşulmaz.
+
+**Kural: günlük mod dokunulmaz.** Ücretsiz, reklamsız, tek hak. Yayılma
+motoru orası; ona dokunan her gelir fikri reddedilir.
+
+- **Tek seferlik kilit açma.** Sonsuz mod ve geçmiş günler arşivi tek
+  ödemeyle açılır. Abonelik değil, reklam değil, kozmetik değil —
+  üretilecek varlık yok, içerik editörü kuralı korunuyor.
+- **Bahşiş kutusu.** Ayarlarda sade bir destek butonu. Hiçbir şeyi
+  kilitlemez.
+
+**Reddedilen: zorluk çarpanı / premium hard mode.** İki sebeple.
+Rüzgar gibi ek faktörler "öğrenilebilir fizik" kuralını (§0) deler.
+Ve premium kullanıcıya farklı fizik vermek günlük tohumun tek anlamını
+— herkesin aynı simülasyonu oynamasını — bozar; iki katmanlı bir günlük
+skorları karşılaştırılamaz hale getirir.
+
+Zorluk isteyen oyuncunun cevabı zaten mekanikte: dar kova.
+
+## 8.3 Tempo kararı: geri sayım yok
+
+Parmağı çektiğin an simülasyon tetiklenir. Araya bekleme konmaz.
+
+Gerekçe: tur 15 saniye, üç saniyelik geri sayım turun beşte biri —
+atıştırmalık bir oyunda ağır vergi. Gerilim zaten simülasyonun
+kendisinde ve o bekleme bilgi taşıyor; geri sayım boş bekleme. Ve
+karar parmağı çektiğin an bitmiş oluyor — sonrasında beklemek oyuna
+hiçbir şey eklemiyor.
+
+**Gerilim isteniyorsa doğru yer:** top kovaya yaklaşırken son yarım
+saniyeyi hafifçe yavaşlat. Bekleme eklemeden aynı etki, ve bilgiyle
+dolu bir an.
+
+## 9. Denenip elenen mekanik aileleri
+
+Kayıt için — aynı fikirler tekrar gündeme gelmesin.
+
+- **Algısal keşif** (bir şey yanlış, ne değişti, yanlış perspektif,
+  gölgeyi oku): prosedürel üretimi zor. "Yanlışlık" ancak ışık kaynağı
+  olan bir sahne modeli varsa üretilebilir; alternatifi elle sahne
+  hazırlamak, o da içerik editörü demek. Hafıza/fark bulma alt kolu
+  (aynısını bul, fazla olanı bul) üretilebilir ama tavanı düşük ve
+  karakteri yok — ancak çeşitlilik turu olarak düşünülebilir.
+- **Kural keşfi** (kuralı çal, gizli sıra, sınırı bul): keşif birkaç
+  tur gözlem ister, günlük challenge o süreyi vermez. Ayrıca çözüm
+  paylaşılamaz — spoiler testini geçmiyor. Doğru formatı seviyeli bir
+  oyun, ki o başka bir ürün.
+- **Serbest zamanlı karar** (karar noktası): "istediğin anda karar ver"
+  tek jest kuralını deliyor.
+
+## 10. Sonraki tur (şimdi yapılmayacak)
+
+**Devretme zinciri.** Bir oyuncunun bıraktığı durum sonraki oyuncuya
+geçiyor; ya da ödülü alıp çıkmak yerine sonrakine devretmek. Yayılma
+mekaniğin içine gömülü oluyor ve kalabalık gerektirmiyor — iki kişiyle
+çalışıyor. İncelenen bütün sosyal mekanikler içinde soğuk başlangıç
+problemi olmayan tek aile bu.
+
+Neden şimdi değil: aralık oyunu tek kişilik bir beceri oyunu, bu ise
+iki kişilik bir devir oyunu. Aynı kabuğa zorlamak ikisini de bozar.
+Aşama 3 sinyal verirse ayrı bir ürün olarak açılır.
+
+- Lider tablosu ve sıralama
+- Arkadaşa doğrudan meydan okuma linki
+- Farklı fizik senaryoları (sekme, yerçekimi, çarpışma)
+- Ses
+- Bildirim
