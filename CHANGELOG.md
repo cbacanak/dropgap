@@ -7,6 +7,14 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ## [Unreleased]
 
+### Changed
+
+- Stage 2a fix, after the session check failed (five rounds did not feel
+  like one session): the finished rounds now build up as a strip of five
+  slots in the header, one bar per round, length = bucket width, filled =
+  caught. The number above the bucket at the result moment is the points
+  earned ("+3"), not the bucket's step.
+
 ### Added
 
 - Stage 2a: a session of five rounds. Round counter and running total at

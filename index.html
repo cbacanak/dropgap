@@ -69,6 +69,8 @@ const RING_T = 0.7;
 // -------------------------------------------------------- Session (Stage 2a)
 const SESSION_ROUNDS = 5;
 const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
+const HEADER_H = 34;                     // band above the play field: seed, round, total, and the strip of finished rounds
+const STRIP_SLOT = 46, STRIP_GAP = 6, STRIP_H = 7;   // five slots; a bar at BUCKET_MAX fills a slot
 
 // --------------------------------------------------------------- Colours
 // Colour is used for exactly one job: telling the three outcomes apart (PLAN §7).
@@ -353,7 +355,8 @@ function commit() {
   const result = classify(sim);
   const targetT = sim.nearT != null ? sim.nearT : sim.endT;
   const resultT = sim.crossed ? sim.crossT : Math.min(sim.endT, targetT + 0.5);
-  game.reveal = { sim, startT, simT: startT, prevT: startT, targetT, resultT, result, shown: false, age: 0, mult: multiplier(), width: bucketWidth() };
+  const mult = multiplier();
+  game.reveal = { sim, startT, simT: startT, prevT: startT, targetT, resultT, result, shown: false, age: 0, mult, width: bucketWidth(), score: scoreFor(result, mult) };
   game.state = 'reveal';
 }
 
@@ -408,9 +411,9 @@ function update(dt) {
     if (!r.shown && r.simT >= r.resultT) {
       r.shown = true; r.age = 0;
       if (r.result !== 'miss') game.rings.push({ x: sim.crossX, y: RIM_Y, kind: r.result, age: 0 });
-      const s = game.session, score = scoreFor(r.result, r.mult);   // the round lands in the session at the result moment
-      s.rounds.push({ mult: r.mult, width: r.width, result: r.result, score });
-      s.total += score; game.totalAge = 0;
+      const s = game.session;                                       // the round lands in the session at the result moment
+      s.rounds.push({ mult: r.mult, width: r.width, result: r.result, score: r.score });
+      s.total += r.score; game.totalAge = 0;
     }
     if (r.shown) r.age += dt;
     if (r.shown && r.simT >= sim.endT) game.state = 'result';
@@ -423,7 +426,7 @@ function update(dt) {
 // Pointer events only: mouse, touch and pen share this one code path (PLAN §5.1).
 function toWorld(e) {
   const rect = canvas.getBoundingClientRect();
-  return { x: (e.clientX - rect.left - view.ox) / view.scale, y: (e.clientY - rect.top - view.oy) / view.scale };
+  return { x: (e.clientX - rect.left - view.ox) / view.scale, y: (e.clientY - rect.top - view.oy) / view.scale - HEADER_H };
 }
 
 function hitTestBucket(p) {
@@ -507,8 +510,8 @@ function resize() {
   canvas.width = Math.round(cw * dpr); canvas.height = Math.round(ch * dpr);
   canvas.style.width = cw + 'px'; canvas.style.height = ch + 'px';
   view.dpr = dpr; view.cw = cw; view.ch = ch;
-  view.scale = Math.min(cw / W, ch / H);
-  view.ox = (cw - W * view.scale) / 2; view.oy = (ch - H * view.scale) / 2;
+  view.scale = Math.min(cw / W, ch / (H + HEADER_H));
+  view.ox = (cw - W * view.scale) / 2; view.oy = (ch - (H + HEADER_H) * view.scale) / 2;
 }
 window.addEventListener('resize', resize);
 
@@ -550,13 +553,16 @@ function draw() {
   ctx.fillStyle = C.outside; ctx.fillRect(0, 0, cw, ch);
   ctx.translate(ox, oy); ctx.scale(scale, scale);
 
-  // Play area
-  ctx.fillStyle = C.panel; ctx.fillRect(0, 0, W, H);
+  // Column: header band, then the play field below it
+  const full = H + HEADER_H;
+  ctx.fillStyle = C.panel; ctx.fillRect(0, 0, W, full);
   ctx.strokeStyle = C.line; ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(0.5, 0); ctx.lineTo(0.5, H); ctx.moveTo(W - 0.5, 0); ctx.lineTo(W - 0.5, H);
-  ctx.moveTo(0, H - 0.5); ctx.lineTo(W, H - 0.5);
+  ctx.moveTo(0.5, 0); ctx.lineTo(0.5, full); ctx.moveTo(W - 0.5, 0); ctx.lineTo(W - 0.5, full);
+  ctx.moveTo(0, full - 0.5); ctx.lineTo(W, full - 0.5);
   ctx.stroke();
+  drawHeader();
+  ctx.translate(0, HEADER_H);
 
   if (game.state === 'summary') { drawSummary(); return; }
 
@@ -591,10 +597,11 @@ function draw() {
   // Multiplier above the bucket. Grows as the bucket narrows; becomes the result at the end.
   const m = multiplier();
   const r = game.reveal, shown = r && r.shown;
-  let size = 20 + m * 0.8, color = C.text, word = null;
+  let size = 20 + m * 0.8, color = C.text, word = null, label = '×' + m;
   if (shown) {
     color = C[r.result];
     word = r.result === 'center' ? 'dead centre' : r.result;
+    label = r.result === 'miss' ? '0' : '+' + r.score;        // what this round earned, not the bucket's step
     if (r.result === 'center') size *= 1 + (0.15 + 0.5 * (m - 1) / 9) * pop(r.age);   // narrow bucket, big moment; wide bucket, quiet
     else if (r.result === 'edge') size *= 1 + 0.08 * pop(r.age);
     else color = C.miss;
@@ -602,7 +609,7 @@ function draw() {
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = color; ctx.font = `600 ${size.toFixed(1)}px ${FONT}`;
   ctx.globalAlpha = shown && r.result === 'miss' ? 0.55 : 1;
-  ctx.fillText('×' + m, cx, RIM_Y - 14);
+  ctx.fillText(label, cx, RIM_Y - 14);
   ctx.globalAlpha = 1;
   if (word) { ctx.fillStyle = color; ctx.font = `500 12px ${FONT}`; ctx.fillText(word, cx, RIM_Y - 18 - size); }
 
@@ -631,16 +638,6 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Top line: session seed (so a session can be reported and replayed), round counter, running total.
-  ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
-  ctx.fillText('#' + game.session.seed, 10, 18);
-  ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
-  ctx.fillText(`round ${game.session.index + 1} / ${SESSION_ROUNDS}`, W / 2, 18);
-  ctx.textAlign = 'right'; ctx.fillStyle = C.text;
-  ctx.font = `600 ${(14 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
-  ctx.fillText('×' + game.session.total, W - 10, 18);
-
   // Hints: once, at the very first round; then after each round.
   ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
   if (game.state === 'observe' && game.roundsPlayed === 1 && !game.drag) {
@@ -654,13 +651,37 @@ function draw() {
 // Session result: the total and one bar per round. Bar length is the bucket width the player
 // chose, a filled bar is a catch (its colour says dead centre or edge), an empty outline is a
 // miss. This is the future share card (PLAN §4); for now it only lives on screen.
+// Header: session seed (so a session can be reported and replayed), round counter, running
+// total, and the strip: five slots, one bar per finished round, so the session takes shape
+// while it is played. Bar length is the bucket width, filled = caught, outline = miss.
+function drawHeader() {
+  const s = game.session, summary = game.state === 'summary';
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
+  ctx.fillText('#' + s.seed, 10, 13);
+  ctx.textAlign = 'center'; ctx.fillStyle = C.dim;
+  ctx.fillText(summary ? 'session' : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 13);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.text;
+  ctx.font = `600 ${(14 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
+  ctx.fillText('×' + s.total, W - 10, 13);
+
+  const span = SESSION_ROUNDS * STRIP_SLOT + (SESSION_ROUNDS - 1) * STRIP_GAP, y = 19;
+  let x = (W - span) / 2;
+  for (let i = 0; i < SESSION_ROUNDS; i++, x += STRIP_SLOT + STRIP_GAP) {
+    const rd = s.rounds[i], current = !summary && i === s.index;
+    ctx.strokeStyle = current ? C.dim : C.line; ctx.lineWidth = 1;          // the slot floor; the current round's is brighter
+    ctx.beginPath(); ctx.moveTo(x, y + STRIP_H + 2.5); ctx.lineTo(x + STRIP_SLOT, y + STRIP_H + 2.5); ctx.stroke();
+    if (!rd) continue;
+    const grow = i === s.rounds.length - 1 ? smooth(game.totalAge / 0.3) : 1;   // the newest bar grows in at the result moment
+    const len = rd.width / BUCKET_MAX * STRIP_SLOT * grow;
+    if (rd.result === 'miss') { ctx.strokeStyle = C.faint; ctx.lineWidth = 1; roundedRect(x + 0.5, y + 0.5, len - 1, STRIP_H - 1, 2); ctx.stroke(); }
+    else { ctx.fillStyle = C[rd.result]; roundedRect(x, y, len, STRIP_H, 2); ctx.fill(); }
+  }
+}
+
 function drawSummary() {
   const s = game.session, age = game.summaryAge;
   ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
-  ctx.fillText('#' + s.seed, 10, 18);
-  ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
-  ctx.fillText('session', W / 2, 18);
 
   const x0 = 50, top = 305, rowH = 22, step = 46;
   for (let i = 0; i < SESSION_ROUNDS; i++) {
