@@ -9,12 +9,18 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
+- Stage 1 prototype (`index.html`): one round, one page. A ball drops,
+  bounces off three randomly tilted platforms, fades out after the first
+  bounce. The player places a bucket (drag to move, drag up/down to
+  narrow/widen, rim handles to resize); letting go plays the simulation,
+  slowing slightly before the rim. Result: dead centre / edge / miss.
+- Seeded rounds: `?seed=N` reproduces a round; the seed is shown top-left.
 - `README.md` as the project entry point.
 - `CHANGELOG.md` for changes and stage test results.
 
 ## Stage 1 — Mechanic test
 
-Not started yet.
+Prototype built. Testing with five people.
 
 **Stop test:** do five people say "one more"?
 
