@@ -17,6 +17,12 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
+- Stage 2b: difficulty curve. Less information per round, same physics.
+  Three levers in one table, one row per round: how long the ball stays
+  visible after the first bounce (0.22 s in round 1, 0.06 s in round 5),
+  the beat before the drop (0.55 s to 0.35 s), and how strongly the
+  platforms are drawn (full to 60%, never hidden). The first bounce is
+  fully visible in every round. Level generation is unchanged.
 - Stage 2a: a session of five rounds. Round counter and running total at
   the top; after the fifth round a session result with the total and one
   bar per round (length = bucket width, filled = caught, colour = dead

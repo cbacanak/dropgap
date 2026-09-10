@@ -200,6 +200,20 @@ hangisinin işe yaradığını ayırt edemezsin.
 **2a — Seans.** 5 turluk seans, toplam skor. Başka hiçbir şey yok.
 Bu, Aşama 1'in tek turunun çoğaltılmış hali; temeli sağlamlaştırır.
 
+*2a durumu (10 Eyl, PR #7 + #8): geçti, ikinci denemede.*
+İlk sürümde beş tur bir seans gibi hissetmedi — birikme ve ıskanın
+bedeli görünmüyordu. Düzeltme: üst bantta tur tur dolan çubuk şeridi
+(paylaşım kartı oyun sırasında kendiliğinden oluşuyor) ve sonuç anında
+kovanın üstünde kazanılan puan ("+3"), adım değil. Kova genişliğinin
+turlar arası taşınması hipotezi ayrı test için bekletildi, şerit
+sonrası gerek kalmadı — kova her tur ×4'e sıfırlanmaya devam ediyor.
+Puanlama: tam orta = çarpanın tamamı, kenar = yarısı yukarı
+yuvarlanmış (`EDGE_SCORE = 0.5`), ıska = 0. Iska turu götürür, seansı
+değil — seans kaybı 2c'de oyuncunun seçeceği bir şey olacak.
+*İzlenecek:* ×8 ve üstünde orta ile kenar arası bir top yarıçapı;
+orada tam mı yarım mı şans. Oyunda hissedilirse dar adımlarda orta
+bölgeye mutlak alt sınır konur.
+
 **2b — Zorluk eğrisi: bilgiyi azalt, hızı değil.** Duvar genişler, top
 daha kısa süre görünür, ivme daha geç belli olur. Aynı fizik, daha az
 veri. Hız ve ivme artırmak refleksi zorlar; bilgi azaltmak çıkarımı
