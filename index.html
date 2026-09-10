@@ -84,19 +84,19 @@ const RING_T = 0.7;
 // ------------------------------------------- Session and modes (Stages 2a, 2c, 2e)
 const SESSION_ROUNDS = 5;
 const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
-// Two modes, no menu. The daily five-round session is the default. Endless (?mode=endless) is a
-// push-your-luck run: no round limit, "take ×N · finish" after every round, a miss takes everything.
-// The target is not offered in the session (2c finding: with the fifth round banking by itself,
-// stopping early is almost never worth it); the miss-ends-the-session rule holds in both modes.
+// Two modes, no menu. The daily five-round session is the default. Endless (?mode=endless) is an
+// open run: no round limit, a miss ends it, the score is the highest total reached before the miss.
+// The "take ×N · finish" target went unused in three tests (2c, 2e, 2e with a best score) and is
+// switched off in both modes: the bucket width already asks the same question. The code stays.
 // Difficulty in endless: the last DIFFICULTY row holds from round 6 on, deliberately, so a ceiling
 // in a long run is observed at constant difficulty.
 const MODES = {
   session: { rounds: SESSION_ROUNDS, bank: false },
-  endless: { rounds: Infinity, bank: true },
+  endless: { rounds: Infinity, bank: false },
 };
 const STRIP_SLOTS = 5;                   // the strip shows the last five rounds; older ones slide off to the left
-// Endless keeps one number on this device: the best banked total (2e finding: a banked total needs
-// somewhere to go, or taking and losing feel the same). Just the number; no advice, no warnings.
+// Endless keeps one number on this device: the best total ever reached. Shown in the header during
+// a run. Just the number; no advice, no warnings.
 const BEST_KEY = 'dropgap.endless.best';
 function loadBest() { try { return Math.max(0, parseInt(localStorage.getItem(BEST_KEY), 10) || 0); } catch (e) { return 0; } }
 function saveBest(n) { try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) { /* private mode, blocked storage */ } }
@@ -481,8 +481,13 @@ function update(dt) {
       if (r.result !== 'miss') game.rings.push({ x: sim.crossX, y: RIM_Y, kind: r.result, age: 0 });
       const s = game.session;                                       // the round lands in the session at the result moment
       s.rounds.push({ mult: r.mult, width: r.width, result: r.result, score: r.score });
-      if (r.result === 'miss') { s.total = 0; s.outcome = 'bust'; }   // continued and missed: the total is gone, the session is over
-      else s.total += r.score;
+      if (r.result === 'miss') {                                    // the miss ends the session or the run
+        s.outcome = 'bust';
+        if (game.mode === 'session') s.total = 0;                     // session: the total is gone; endless: the score is what was reached
+      } else {
+        s.total += r.score;
+        if (game.mode === 'endless' && s.total > game.best) { game.best = s.total; game.newBest = true; saveBest(game.best); }
+      }
       game.totalAge = 0;
     }
     if (r.shown) r.age += dt;
@@ -758,6 +763,10 @@ function drawHeader() {
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
   ctx.font = `600 ${(14 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
   ctx.fillText('×' + s.total, W - 10, 13);
+  if (endless && game.best > 0) {                                          // the best total reached on this device
+    ctx.fillStyle = C.dim; ctx.font = `500 11px ${FONT}`;
+    ctx.fillText('best ' + game.best, W - 10, 28);
+  }
 
   // The strip: the last five rounds. In a long run a new round pushes it one slot to the left.
   const pitch = STRIP_SLOT + STRIP_GAP, span = STRIP_SLOTS * pitch - STRIP_GAP, y = 19, x0 = (W - span) / 2;
@@ -814,7 +823,7 @@ function drawSummary() {
     }
     if (k >= 1) {
       ctx.textAlign = 'right'; ctx.font = `600 14px ${FONT}`;
-      ctx.fillStyle = rd.result === 'miss' || s.outcome === 'bust' ? C.faint : C[rd.result];   // after a bust the points are history
+      ctx.fillStyle = rd.result === 'miss' || (s.outcome === 'bust' && !endless) ? C.faint : C[rd.result];   // a session bust makes the points history
       ctx.fillText(rd.score ? '×' + rd.score : '0', W - 30, y + rowH / 2 + 5);
     }
   }
@@ -826,7 +835,8 @@ function drawSummary() {
     ctx.fillText('×' + s.total, W / 2, 235);
     // How it ended: the same fact the strip shows, in words.
     const how = endless
-      ? (s.outcome !== 'banked' ? `lost at round ${s.endedAt}` : game.newBest ? `new best ×${s.total}` : `banked ×${s.total} · best ${game.best}`)
+      ? (s.outcome === 'banked' ? `banked ×${s.total} · best ${game.best}`
+        : game.newBest ? `new best ×${s.total} in ${s.endedAt} rounds` : `reached ×${s.total} in ${s.endedAt} rounds · best ${game.best}`)
       : (s.outcome === 'banked' ? `took it after round ${s.endedAt}` : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds');
     ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
     ctx.fillText(how, W / 2, 262);
