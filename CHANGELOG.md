@@ -9,6 +9,19 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Endless band checkpoint (PLAN §2e.3). A miss no longer ends the run:
+  it sends the run back to the first round of its ladder band (a miss
+  at round 20 restarts at 19, the start of the 19–21 band). The rounds
+  played since the band start and their points are gone; the highest
+  total reached and the best stay, the run-end card and its "reached"
+  text are unchanged. At the miss moment the round counter and the
+  strip already show the band start. The run ends when the player
+  leaves. The session is untouched: a miss still zeroes it and ends it.
+- Fixed: in a long endless run the header strip stayed one slot to
+  the right after round six (its slide animation never advanced), so
+  the current round's slot was off the edge and the five bars were one
+  round behind. Found while checking that the strip returns to the band
+  start.
 - Touch area: the whole screen (PLAN §7.1). A drag starts anywhere,
   relative as before. Letting go drops the ball once the finger has
   left the dead zone at least once. A touch that never moved drops with
@@ -158,6 +171,11 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
   what to do" moments. The words were not where the eyes were, the
   header was too small on a phone, and a touch while looking dropped
   the ball. Four layout changes; style unchanged.
+- 2026-09-10: the §2e.1 ladder passed: deaths around rounds 3, 5, 15,
+  20 and 30, no pile-up in one band, "could not catch it" rather than
+  "could not see it". New finding: starting over from round one is
+  boring. Band checkpoint added; the water-pouring model (miss = replay
+  the same section) rejected. Test: five runs, is the boredom gone?
 
 ## Stage 1 — Mechanic test
 
