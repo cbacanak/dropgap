@@ -9,6 +9,10 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Bucket gesture fix: touching between the two walls is always a body
+  drag, however narrow the bucket (at ×10 the handles used to catch the
+  finger). A handle is only the 16-unit strip just outside its wall;
+  it never reaches inside.
 - The bank layer ("take ×N · finish") went unused in three tests: the
   five-round session (2c), endless (2e), and endless with a best score.
   Removed in both modes; the code stays behind the mode table. The

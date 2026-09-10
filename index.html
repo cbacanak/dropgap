@@ -40,7 +40,7 @@ function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Mat
 const BODY_DRAG_SETS_WIDTH = true;       // body drag: sideways = position, up/down = width (up = narrower)
 const BODY_DRAG_WIDTH_GAIN = 1.6;        // width units per vertical unit
 const BODY_DRAG_DEADZONE = 6;            // vertical wobble below this does not change the width
-const HANDLE_ZONE = 22;                  // touch radius around each rim end
+const HANDLE_ZONE = 16;                  // the handle strip just outside each wall; it never reaches between the walls
 
 // -------------------------------------------------------------- Physics
 // Fixed. The physics has to stay learnable (PLAN §0): nothing here varies per round.
@@ -570,13 +570,15 @@ function toWorld(e) {
   return { x: (e.clientX - rect.left - view.ox) / view.scale, y: (e.clientY - rect.top - view.oy) / view.scale - HEADER_H };
 }
 
+// Between the walls is always the body, however narrow the bucket. A handle is only the strip
+// just outside its wall, at rim height; below the rim that strip moves the bucket too.
 function hitTestBucket(p) {
   const b = game.bucket;
-  if (Math.abs(p.y - RIM_Y) <= HANDLE_ZONE + 6) {
-    const dl = Math.abs(p.x - b.left), dr = Math.abs(p.x - b.right);
-    if (dl <= HANDLE_ZONE || dr <= HANDLE_ZONE) return dl <= dr ? 'left' : 'right';
-  }
-  if (p.y >= RIM_Y - 30 && p.y <= RIM_Y + BUCKET_DEPTH + 24 && p.x >= b.left - 18 && p.x <= b.right + 18) return 'move';
+  if (p.y < RIM_Y - 30 || p.y > RIM_Y + BUCKET_DEPTH + 24) return null;
+  if (p.x >= b.left && p.x <= b.right) return 'move';
+  const atRim = Math.abs(p.y - RIM_Y) <= HANDLE_ZONE + 6;
+  if (p.x < b.left && p.x >= b.left - HANDLE_ZONE) return atRim ? 'left' : 'move';
+  if (p.x > b.right && p.x <= b.right + HANDLE_ZONE) return atRim ? 'right' : 'move';
   return null;
 }
 
@@ -951,7 +953,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, hitTestBucket, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
