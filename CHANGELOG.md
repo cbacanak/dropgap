@@ -20,6 +20,8 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ## Stage 1 — Mechanic test
 
+- 2026-09-10: Stage 1 passed the live check. Waiting for the five-person test.
+
 Prototype built. Testing with five people.
 
 **Stop test:** do five people say "one more"?

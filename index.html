@@ -27,7 +27,11 @@ const BALL_R = 7;
 const START_Y = 24;
 const RIM_Y = 600;                       // bucket rim; the result is decided when the ball centre crosses this line
 const BUCKET_DEPTH = 52;
-const BUCKET_MIN = 26, BUCKET_MAX = 260, BUCKET_START_W = 120;
+const BUCKET_MIN = 26, BUCKET_MAX = 260;  // ×10 (narrowest) … ×1 (widest); nothing wider than ×1
+const BUCKET_STEPS = 10;                 // width is locked to ten geometric steps, one per multiplier
+const BUCKET_START_STEP = 6;             // ×4
+function stepWidth(k) { return BUCKET_MIN * Math.pow(BUCKET_MAX / BUCKET_MIN, k / (BUCKET_STEPS - 1)); }
+function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_MAX / BUCKET_MIN) * (BUCKET_STEPS - 1)), 0, BUCKET_STEPS - 1); }
 const BODY_DRAG_SETS_WIDTH = true;       // body drag: sideways = position, up/down = width (up = narrower)
 const BODY_DRAG_WIDTH_GAIN = 1.6;        // width units per vertical unit
 const BODY_DRAG_DEADZONE = 6;            // vertical wobble below this does not change the width
@@ -291,14 +295,25 @@ function startRound(seed) {
   game.fadeStartT = game.firstBounce.t + SEEN_AFTER_BOUNCE;
   game.flashedFirst = false;
   game.drag = null; game.reveal = null; game.flashes = []; game.rings = [];
-  game.bucket.left = W / 2 - BUCKET_START_W / 2;
-  game.bucket.right = W / 2 + BUCKET_START_W / 2;
+  game.bucket.left = W / 2 - stepWidth(BUCKET_START_STEP) / 2;
+  game.bucket.right = W / 2 + stepWidth(BUCKET_START_STEP) / 2;
   writeSeed(seed);
 }
 
 function bucketWidth() { return game.bucket.right - game.bucket.left; }
 function bucketCx() { return (game.bucket.left + game.bucket.right) / 2; }
-function multiplier() { return Math.max(1, Math.round(BUCKET_MAX / bucketWidth())); }
+function multiplier() { return BUCKET_STEPS - nearestStep(bucketWidth()); }
+
+// Dragging stays smooth; on release the width settles on the nearest step. The anchor is the
+// part the finger did not hold: the untouched edge for a handle drag, the centre for a body drag.
+function snapBucket(anchor) {
+  const b = game.bucket, target = stepWidth(nearestStep(bucketWidth()));
+  if (anchor === 'left') b.right = b.left + target;
+  else if (anchor === 'right') b.left = b.right - target;
+  else { const cx = bucketCx(); b.left = cx - target / 2; b.right = cx + target / 2; }
+  const shift = Math.max(0, 2 - b.left) - Math.max(0, b.right - (W - 2));
+  b.left += shift; b.right += shift;
+}
 function observeT() { return Math.max(0, game.clock - HOLD_T); }
 
 function classify(sim) {
@@ -429,6 +444,7 @@ canvas.addEventListener('pointermove', e => {
 canvas.addEventListener('pointerup', e => {
   if (!game.drag || e.pointerId !== game.drag.id) return;
   applyDrag(toWorld(e));
+  snapBucket(game.drag.mode === 'left' ? 'right' : game.drag.mode === 'right' ? 'left' : 'center');
   game.drag = null;
   canvas.style.cursor = 'default';
   commit();
