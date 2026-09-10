@@ -657,6 +657,30 @@ söylemek yerine gösteriyor.
 **Renk yalnızca iki iş için:** tuttu / tutmadı, ve tam isabet / kenar.
 Üç durum, üç ton. Başka yerde renk yok.
 
+### 7.1 Düzen — ilk çok kullanıcılı testten (10 Eyl)
+
+İki kişi oynadı, "ne yapacağımı anlamadım" anları yaşandı. Bulgular
+ve ayrım:
+
+**"iOS oyun mantığı" iki şey.** Kullanılabilirlik gelenekleri — uyarı
+nerede durur, dokunma hedefi ne kadar büyük, "devam et" nasıl
+anlaşılır — alınır. Stil gelenekleri — konfeti, parlayan buton, çarpı
+işaretli popup — alınmaz. Kullanıcı zorlanıyorsa sorun ilkinde ve stil
+değiştirmeden düzelir.
+
+- **Yazılar gözün olduğu yerde.** "Tap for the next round" alttaydı,
+  göz topta ve kovadaydı, kimse görmedi. Tur sonrası ipucu ekranın
+  ortasına, yarı saydam, topun durduğu bölgenin yakınına. Seans ve koşu
+  sonu ortalanmış tek kart: toplam, çubuklar, "tap anywhere." Buton
+  yok — bu popup değil, sonuç kartı; "vurgu sonuçta" ile uyumlu.
+- **Üst bant iki katına.** 34 birim ve 7 birimlik çubuk telefonda
+  küçüktü. Beş yuva her zaman sığar (seansta beş, sonsuzda son beş),
+  büyütmek serbest.
+- **Dokunma alanı alt yarı, tüm ekran değil.** Bırakmak topu
+  düşürdüğü için tüm ekran kazara düşüş demek: oyuncu platformlara
+  bakarken dokunup çekince top varsayılan kovayla gider. Üst yarı
+  "bakma alanı" olarak güvenli kalıyor.
+
 Genel çerçeve: sakin ve enstrüman gibi. Simülasyon zaten hareketli,
 arayüz onu bastırmamalı.
 

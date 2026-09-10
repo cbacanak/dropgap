@@ -9,6 +9,16 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Layout, from the first two-person test (PLAN §7.1), four changes, no
+  mechanic, physics or seed touched. The post-round "tap for the next
+  round" moves from the bottom line, which nobody saw, to mid-field
+  above the bucket, semi-transparent. The session end and the run end
+  are one centred card: the total, the bars under it, "tap anywhere" at
+  the foot; no button. The header band doubles (34 → 68 units), the
+  strip bars grow with it, the seed and round text are readable on a
+  phone. The touch area is the bottom half, not the bottom quarter, and
+  the top half never reacts to a touch: looking at the platforms cannot
+  drop the ball.
 - Gesture, third form: the handles are gone. The bottom band of the
   field (about a quarter) is the single touch area. Movement is
   relative to where the finger landed, the bucket never jumps to it:
@@ -138,6 +148,10 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 - 2026-09-10: the single-axis lever was too steep ("the bars went too
   early"). Replaced by the §2e.1 ladder: four axes, one change per
   band, thirty rounds.
+- 2026-09-10: first two-person test of the layout: "I did not know
+  what to do" moments. The words were not where the eyes were, the
+  header was too small on a phone, and a touch while looking dropped
+  the ball. Four layout changes; style unchanged.
 
 ## Stage 1 — Mechanic test
 
