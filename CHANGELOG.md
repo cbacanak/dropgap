@@ -35,6 +35,13 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
+- Endless ceiling lever: how the platforms are drawn changes with the
+  round, in one table (`ENDLESS_PLATFORM_STYLE`). Rounds 1–5 as the
+  difficulty table says; 6–10 a full bar at 45%; 11–15 no bar, only
+  the two endpoints as small dots at full strength; 16 and on the
+  endpoints at 60%. The endpoints never disappear, so the angle can
+  always be derived; the first bounce stays fully visible. Physics,
+  seeds and the generator are untouched. Endless only.
 - Endless best score, kept on the device in `localStorage` (2e
   finding: a banked total needs somewhere to go, or taking and losing
   feel the same). The target reads "take ×35 · best 41"; the run end
@@ -103,6 +110,9 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 - 2026-09-10: still unused with a best score. Bank layer removed in
   both modes after three tests; the width already asks the same
   question. Endless scores the highest total reached before the miss.
+- 2026-09-10: 2e check 2, the ceiling: "all the same" after round ten,
+  where 2b predicted it. Lever applied: platform legibility, endless
+  only.
 
 ## Stage 1 — Mechanic test
 
