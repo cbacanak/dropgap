@@ -9,10 +9,15 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
-- Bucket gesture fix: touching between the two walls is always a body
-  drag, however narrow the bucket (at ×10 the handles used to catch the
-  finger). A handle is only the 16-unit strip just outside its wall;
-  it never reaches inside.
+- Gesture, third form: the handles are gone. The bottom band of the
+  field (about a quarter) is the single touch area. Movement is
+  relative to where the finger landed, the bucket never jumps to it:
+  sideways moves it, up narrows it, down widens it, both at once, a
+  6-unit dead zone on each axis. Handle drawing and hit-testing
+  removed. First-round hint: "drag sideways to move, up to narrow".
+- Bucket gesture fix (superseded above): touching between the two
+  walls is always a body drag, however narrow the bucket. A handle is
+  only the 16-unit strip just outside its wall.
 - The bank layer ("take ×N · finish") went unused in three tests: the
   five-round session (2c), endless (2e), and endless with a best score.
   Removed in both modes; the code stays behind the mode table. The

@@ -37,10 +37,12 @@ function stepWidth(k) { return BUCKET_MIN * Math.pow(BUCKET_STEP_RATIO, k); }
 function maxStepIndex() { return BUCKET_STEPS - (game.rules ? game.rules.minMult : 1); }
 function maxBucketWidth() { return stepWidth(maxStepIndex()); }
 function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_STEP_RATIO)), 0, maxStepIndex()); }
-const BODY_DRAG_SETS_WIDTH = true;       // body drag: sideways = position, up/down = width (up = narrower)
-const BODY_DRAG_WIDTH_GAIN = 1.6;        // width units per vertical unit
-const BODY_DRAG_DEADZONE = 6;            // vertical wobble below this does not change the width
-const HANDLE_ZONE = 16;                  // the handle strip just outside each wall; it never reaches between the walls
+// The gesture: touch anywhere in the bottom band of the field and drag. Movement is relative to
+// where the finger landed (the bucket never jumps to it): sideways moves the bucket, up narrows it,
+// down widens it, both at once. No handles.
+const TOUCH_BAND_Y = H * 0.75;           // the band starts here; everything below is the touch area
+const DRAG_WIDTH_GAIN = 1.6;             // width units per vertical unit
+const DRAG_DEADZONE = 6;                 // wobble below this, on either axis, changes nothing
 
 // -------------------------------------------------------------- Physics
 // Fixed. The physics has to stay learnable (PLAN §0): nothing here varies per round.
@@ -438,13 +440,10 @@ function bucketWidth() { return game.bucket.right - game.bucket.left; }
 function bucketCx() { return (game.bucket.left + game.bucket.right) / 2; }
 function multiplier() { return BUCKET_STEPS - nearestStep(bucketWidth()); }
 
-// Dragging stays smooth; on release the width settles on the nearest step. The anchor is the
-// part the finger did not hold: the untouched edge for a handle drag, the centre for a body drag.
-function snapBucket(anchor) {
-  const b = game.bucket, target = stepWidth(nearestStep(bucketWidth()));
-  if (anchor === 'left') b.right = b.left + target;
-  else if (anchor === 'right') b.left = b.right - target;
-  else { const cx = bucketCx(); b.left = cx - target / 2; b.right = cx + target / 2; }
+// Dragging stays smooth; on release the width settles on the nearest step, around the centre.
+function snapBucket() {
+  const b = game.bucket, target = stepWidth(nearestStep(bucketWidth())), cx = bucketCx();
+  b.left = cx - target / 2; b.right = cx + target / 2;
   const shift = Math.max(0, 2 - b.left) - Math.max(0, b.right - (W - 2));
   b.left += shift; b.right += shift;
 }
@@ -570,34 +569,15 @@ function toWorld(e) {
   return { x: (e.clientX - rect.left - view.ox) / view.scale, y: (e.clientY - rect.top - view.oy) / view.scale - HEADER_H };
 }
 
-// Between the walls is always the body, however narrow the bucket. A handle is only the strip
-// just outside its wall, at rim height; below the rim that strip moves the bucket too.
-function hitTestBucket(p) {
-  const b = game.bucket;
-  if (p.y < RIM_Y - 30 || p.y > RIM_Y + BUCKET_DEPTH + 24) return null;
-  if (p.x >= b.left && p.x <= b.right) return 'move';
-  const atRim = Math.abs(p.y - RIM_Y) <= HANDLE_ZONE + 6;
-  if (p.x < b.left && p.x >= b.left - HANDLE_ZONE) return atRim ? 'left' : 'move';
-  if (p.x > b.right && p.x <= b.right + HANDLE_ZONE) return atRim ? 'right' : 'move';
-  return null;
-}
+function inTouchBand(p) { return p.y >= TOUCH_BAND_Y && p.y <= H && p.x >= 0 && p.x <= W; }
+function pastDeadzone(v) { return Math.abs(v) <= DRAG_DEADZONE ? 0 : v - Math.sign(v) * DRAG_DEADZONE; }
 
+// Relative to where the finger landed: sideways = position, up = narrower, down = wider.
 function applyDrag(p) {
   const b = game.bucket, d = game.drag;
-  if (d.mode === 'move') {
-    let w = d.startW;
-    if (BODY_DRAG_SETS_WIDTH) {
-      const dy = d.startY - p.y;                                   // up = positive = narrower
-      const eff = Math.abs(dy) <= BODY_DRAG_DEADZONE ? 0 : dy - Math.sign(dy) * BODY_DRAG_DEADZONE;
-      w = clamp(d.startW - eff * BODY_DRAG_WIDTH_GAIN, BUCKET_MIN, maxBucketWidth());
-    }
-    const cx = clamp(p.x - d.offset, w / 2 + 2, W - w / 2 - 2);
-    b.left = cx - w / 2; b.right = cx + w / 2;
-  } else if (d.mode === 'left') {
-    b.left = clamp(p.x, Math.max(2, b.right - maxBucketWidth()), b.right - BUCKET_MIN);
-  } else {
-    b.right = clamp(p.x, b.left + BUCKET_MIN, Math.min(W - 2, b.left + maxBucketWidth()));
-  }
+  const w = clamp(d.startW - pastDeadzone(d.startY - p.y) * DRAG_WIDTH_GAIN, BUCKET_MIN, maxBucketWidth());
+  const cx = clamp(d.startCx + pastDeadzone(p.x - d.startX), w / 2 + 2, W - w / 2 - 2);
+  b.left = cx - w / 2; b.right = cx + w / 2;
 }
 
 function canAdvance() {
@@ -620,9 +600,8 @@ canvas.addEventListener('pointerdown', e => {
   }
   if (game.state !== 'observe') return;
   const p = toWorld(e);
-  const mode = hitTestBucket(p);
-  if (!mode) return;
-  game.drag = { id: e.pointerId, mode, offset: p.x - bucketCx(), startW: bucketWidth(), startY: p.y };
+  if (!inTouchBand(p)) return;
+  game.drag = { id: e.pointerId, startX: p.x, startY: p.y, startCx: bucketCx(), startW: bucketWidth() };
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   canvas.style.cursor = 'grabbing';
 });
@@ -633,13 +612,13 @@ canvas.addEventListener('pointermove', e => {
     return;
   }
   if (e.pointerType === 'mouse') {
-    canvas.style.cursor = game.state === 'observe' ? (hitTestBucket(toWorld(e)) ? 'grab' : 'default') : (canAdvance() ? 'pointer' : 'default');
+    canvas.style.cursor = game.state === 'observe' ? (inTouchBand(toWorld(e)) ? 'grab' : 'default') : (canAdvance() ? 'pointer' : 'default');
   }
 });
 canvas.addEventListener('pointerup', e => {
   if (!game.drag || e.pointerId !== game.drag.id) return;
   applyDrag(toWorld(e));
-  snapBucket(game.drag.mode === 'left' ? 'right' : game.drag.mode === 'right' ? 'left' : 'center');
+  snapBucket();
   game.drag = null;
   canvas.style.cursor = 'default';
   commit();
@@ -744,11 +723,6 @@ function draw() {
   ctx.beginPath(); ctx.moveTo(b.left, RIM_Y); ctx.lineTo(b.left, bottom); ctx.lineTo(b.right, bottom); ctx.lineTo(b.right, RIM_Y); ctx.stroke();
   ctx.strokeStyle = C.handle; ctx.lineWidth = 4;                       // the centre half of the floor: "dead centre" zone
   ctx.beginPath(); ctx.moveTo(cx - w / 4, bottom); ctx.lineTo(cx + w / 4, bottom); ctx.stroke();
-  for (const hx of [b.left, b.right]) {                                // rim handles
-    const held = game.drag && ((game.drag.mode === 'left' && hx === b.left) || (game.drag.mode === 'right' && hx === b.right));
-    ctx.fillStyle = held ? C.text : C.handle;
-    ctx.beginPath(); ctx.arc(hx, RIM_Y, held ? 6 : 4.5, 0, Math.PI * 2); ctx.fill();
-  }
   ctx.globalAlpha = 1;
 
   // A step that just left the ladder: the old widest bucket collapses into the new widest and fades.
@@ -811,7 +785,7 @@ function draw() {
   // Hints: once, at the very first round; then after each round.
   ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
   if (game.state === 'observe' && game.roundsPlayed === 1 && !game.drag) {
-    ctx.fillText('drag the bucket to place it · drag up to narrow it', W / 2, H - 30);
+    ctx.fillText('drag sideways to move, up to narrow', W / 2, H - 30);
     ctx.fillText('let go to drop', W / 2, H - 12);
   } else if (canAdvance()) {
     if (game.session.outcome === 'bust') ctx.fillText('tap to finish', W / 2, H - 12);
@@ -953,7 +927,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, hitTestBucket, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, inTouchBand, TOUCH_BAND_Y, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
