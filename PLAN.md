@@ -171,6 +171,26 @@ kısaltılabilir.
 
 **Kalan:** Beş kişi testi. Sonuç CHANGELOG'a.
 
+#### Çarpan merdiveni (10 Eyl, PR #5)
+
+İlk sürümde çarpan `sabit / genişlik` idi: dar uçta sıkışık, geniş
+uçta yayvan. ×2→×1 arası ekranın yarısı, ×1 altında kova büyümeye
+devam ediyor ama rakam değişmiyordu — geri bildirim ölüyordu.
+
+**Karar:** Kova genişliği on geometrik adıma kilitli, her adım bir
+öncekinin 1,29 katı. ×10 = 26, ×9 = 34, ×8 = 43, ×7 = 56, ×6 = 72,
+×5 = 93, ×4 = 121, ×3 = 156, ×2 = 201, ×1 = 260. Çarpan artık genişliği
+tarif etmiyor, genişliğin kendisi. Sürüklerken akıcı, bırakınca en
+yakın adıma oturuyor. ×1 ötesinde genişleme yok. Varsayılan ×4.
+
+Yan kazanç: paylaşım kartındaki "uzunluk = risk" artık tam olarak on
+seviye.
+
+**Aşama 2 için ayar notu:** ×1 alanın %65'i, ×2 yarısı — ikisi de
+neredeyse garanti. Gerçek karar aralığı ×3 ve üstü. Zorluk eğrisi
+kurulurken alt iki adım "karar" hissettirmiyorsa oran sabiti
+düşürülür ve ×1 daralır.
+
 ### Aşama 2 — Oyun döngüsü (3–5 gün)
 
 **Sırayla eklenecek, hepsi birden değil.** Her adımdan sonra oyna ve
