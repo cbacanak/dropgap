@@ -40,10 +40,11 @@ Two rules matter most:
 
 ## Current stage
 
-**Stage 2c — risk layer.** After each round: tap for the next one, or
-take the total and finish. Continue and miss, and the total is gone.
-The rest of Stage 2 (2d–2f) comes one step at a time, each its own PR,
-each with its own stop test.
+**Stage 2e — endless mode.** An open run: play until a miss. The score
+is the highest total reached, the best is kept on the device. The
+difficulty ladder (PLAN §2e.1) is under test: which row do you die on,
+and why. The rest of Stage 2 (2d, 2f) comes one step at a time, each
+its own PR, each with its own stop test.
 
 Stage 1's question, "do five people say one more?", was answered yes.
 

@@ -40,7 +40,7 @@ function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Mat
 // The gesture: touch anywhere in the bottom band of the field and drag. Movement is relative to
 // where the finger landed (the bucket never jumps to it): sideways moves the bucket, up narrows it,
 // down widens it, both at once. No handles.
-const TOUCH_BAND_Y = H * 0.75;           // the band starts here; everything below is the touch area
+const TOUCH_BAND_Y = H * 0.5;            // the band starts here: the bottom half. The top half is for looking (PLAN §7.1)
 const DRAG_WIDTH_GAIN = 1.6;             // width units per vertical unit
 const DRAG_DEADZONE = 6;                 // wobble below this, on either axis, changes nothing
 
@@ -161,8 +161,8 @@ function halfwayT(sim, t0, t1) {   // the time at which the ball has covered hal
 const BEST_KEY = 'dropgap.endless.best';
 function loadBest() { try { return Math.max(0, parseInt(localStorage.getItem(BEST_KEY), 10) || 0); } catch (e) { return 0; } }
 function saveBest(n) { try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) { /* private mode, blocked storage */ } }
-const HEADER_H = 34;                     // band above the play field: seed, round, total, and the strip of finished rounds
-const STRIP_SLOT = 46, STRIP_GAP = 6, STRIP_H = 7;   // five slots; a bar at BUCKET_MAX fills a slot
+const HEADER_H = 68;                     // band above the play field: seed, round, total, and the strip of finished rounds (doubled, PLAN §7.1)
+const STRIP_SLOT = 46, STRIP_GAP = 6, STRIP_H = 14;  // five slots; a bar at BUCKET_MAX fills a slot
 
 // --------------------------------------------------------------- Colours
 // Colour is used for exactly one job: telling the three outcomes apart (PLAN §7).
@@ -788,10 +788,16 @@ function draw() {
     ctx.fillText('drag sideways to move, up to narrow', W / 2, H - 30);
     ctx.fillText('let go to drop', W / 2, H - 12);
   } else if (canAdvance()) {
-    if (game.session.outcome === 'bust') ctx.fillText('tap to finish', W / 2, H - 12);
-    else if (game.session.index + 1 >= roundLimit()) ctx.fillText('tap to finish the session', W / 2, H - 12);
-    else if (!bankAvailable()) ctx.fillText('tap for the next round', W / 2, H - 12);
-    else {
+    // Where the eye is (PLAN §7.1): mid-field, above the bucket and the ball, semi-transparent.
+    // The bottom line went unseen.
+    const next = game.session.outcome === 'bust' ? 'tap to finish'
+      : game.session.index + 1 >= roundLimit() ? 'tap to finish the session' : 'tap for the next round';
+    if (!bankAvailable()) {
+      ctx.globalAlpha = 0.6 * clamp((game.reveal.age - 0.6) / 0.3, 0, 1);
+      ctx.fillStyle = C.text; ctx.font = `500 16px ${FONT}`;
+      ctx.fillText(next, W / 2, RIM_Y - 170);
+      ctx.globalAlpha = 1;
+    } else {
       // Two ways out, side by side, stated plainly: the next round, or take what is there.
       ctx.textAlign = 'left'; ctx.fillText('tap for the next round', 12, H - 18);
       const p = bankPill();
@@ -814,21 +820,21 @@ function draw() {
 function drawHeader() {
   const s = game.session, summary = game.state === 'summary';
   ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
-  ctx.fillText('#' + s.seed, 10, 13);
+  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 14px ${FONT}`;
+  ctx.fillText('#' + s.seed, 10, 25);
   ctx.textAlign = 'center'; ctx.fillStyle = C.dim;
   const endless = game.mode === 'endless';
-  ctx.fillText(summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 13);
+  ctx.fillText(summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 25);
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
-  ctx.font = `600 ${(14 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
-  ctx.fillText('×' + s.total, W - 10, 13);
+  ctx.font = `600 ${(20 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
+  ctx.fillText('×' + s.total, W - 10, 26);
   if (endless && game.best > 0) {                                          // the best total reached on this device
-    ctx.fillStyle = C.dim; ctx.font = `500 11px ${FONT}`;
-    ctx.fillText('best ' + game.best, W - 10, 28);
+    ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
+    ctx.fillText('best ' + game.best, W - 10, 46);
   }
 
   // The strip: the last five rounds. In a long run a new round pushes it one slot to the left.
-  const pitch = STRIP_SLOT + STRIP_GAP, span = STRIP_SLOTS * pitch - STRIP_GAP, y = 19, x0 = (W - span) / 2;
+  const pitch = STRIP_SLOT + STRIP_GAP, span = STRIP_SLOTS * pitch - STRIP_GAP, y = 36, x0 = (W - span) / 2;
   const first = stripFirst(), shift = (1 - smooth(game.stripShiftAge / 0.25)) * pitch;
   ctx.save(); ctx.beginPath(); ctx.rect(x0 - 1, y - 2, span + 2, STRIP_H + 6); ctx.clip();
   for (let j = shift > 0 ? -1 : 0; j < STRIP_SLOTS; j++) {
@@ -852,17 +858,24 @@ function stripFirst() {
   return Math.max(0, last - (STRIP_SLOTS - 1));
 }
 
+// Session or run end: one centred card (PLAN §7.1). The total, big; one bar per round under it;
+// "tap anywhere" at its foot. No button: this is the result, not a popup.
 function drawSummary() {
   const s = game.session, age = game.summaryAge;
   ctx.textBaseline = 'alphabetic';
-
-  const x0 = 50, top = 305, rowH = 22, step = 46;
   const endless = game.mode === 'endless', first = endless ? stripFirst() : 0;   // endless: the last five rounds, like the strip
+  const cw = 320, chh = 392, cx0 = (W - cw) / 2, cy0 = (H - chh) / 2;
+  ctx.globalAlpha = smooth(age / 0.25);
+  ctx.fillStyle = 'rgba(255,255,255,0.03)'; roundedRect(cx0, cy0, cw, chh, 16); ctx.fill();
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1; roundedRect(cx0 + 0.5, cy0 + 0.5, cw - 1, chh - 1, 15.5); ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const x0 = cx0 + 56, top = cy0 + 132, rowH = 20, step = 34, scoreX = cx0 + cw - 28;
   for (let j = 0; j < STRIP_SLOTS; j++) {
     const i = first + j, rd = s.rounds[i], y = top + j * step;
     if (!rd) {
       if (endless) continue;                                  // a run has no fixed length: nothing to show as unplayed
-      ctx.textAlign = 'right'; ctx.fillStyle = C.line; ctx.font = `500 11px ${FONT}`;   // a session round never played: an empty slot
+      ctx.textAlign = 'right'; ctx.fillStyle = C.line; ctx.font = `500 12px ${FONT}`;   // a session round never played: an empty slot
       ctx.fillText(String(i + 1), x0 - 12, y + rowH / 2 + 4);
       ctx.strokeStyle = C.line; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x0, y + rowH + 0.5); ctx.lineTo(x0 + 40, y + rowH + 0.5); ctx.stroke();
@@ -871,7 +884,7 @@ function drawSummary() {
     const k = smooth((age - 0.1 - j * 0.12) / 0.3);          // bars grow in one after another
     if (k <= 0) continue;
     const len = rd.width * k;
-    ctx.textAlign = 'right'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
+    ctx.textAlign = 'right'; ctx.fillStyle = C.faint; ctx.font = `500 12px ${FONT}`;
     ctx.fillText(String(i + 1), x0 - 12, y + rowH / 2 + 4);
     if (rd.result === 'miss') {
       ctx.strokeStyle = C.faint; ctx.lineWidth = 1.5;
@@ -883,7 +896,7 @@ function drawSummary() {
     if (k >= 1) {
       ctx.textAlign = 'right'; ctx.font = `600 14px ${FONT}`;
       ctx.fillStyle = rd.result === 'miss' || (s.outcome === 'bust' && !endless) ? C.faint : C[rd.result];   // a session bust makes the points history
-      ctx.fillText(rd.score ? '×' + rd.score : '0', W - 30, y + rowH / 2 + 5);
+      ctx.fillText(rd.score ? '×' + rd.score : '0', scoreX, y + rowH / 2 + 5);
     }
   }
   const tk = smooth((age - 0.8) / 0.3);                        // the total lands last
@@ -891,19 +904,19 @@ function drawSummary() {
     ctx.globalAlpha = tk;
     ctx.textAlign = 'center'; ctx.fillStyle = C.text;
     ctx.font = `700 ${(56 * (0.9 + 0.1 * tk)).toFixed(1)}px ${FONT}`;
-    ctx.fillText('×' + s.total, W / 2, 235);
+    ctx.fillText('×' + s.total, W / 2, cy0 + 78);
     // How it ended: the same fact the strip shows, in words.
     const how = endless
       ? (s.outcome === 'banked' ? `banked ×${s.total} · best ${game.best}`
         : game.newBest ? `new best ×${s.total} in ${s.endedAt} rounds` : `reached ×${s.total} in ${s.endedAt} rounds · best ${game.best}`)
       : (s.outcome === 'banked' ? `took it after round ${s.endedAt}` : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds');
-    ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
-    ctx.fillText(how, W / 2, 262);
+    ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
+    ctx.fillText(how, W / 2, cy0 + 104);
     ctx.globalAlpha = 1;
   }
   if (age > 1.3) {
     ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
-    ctx.fillText(endless ? 'tap for a new run' : 'tap for a new session', W / 2, H - 12);
+    ctx.fillText('tap anywhere', W / 2, cy0 + chh - 24);
     ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 12px ${FONT}`;   // the way into the other mode; no menu
     ctx.fillText(endless ? 'session' : 'endless', 12, H - 12);
   }
