@@ -60,8 +60,21 @@ const MAX_FLIGHT_T = 4.5;
 const MAX_ATTEMPTS = 400;
 
 // --------------------------------------------------------------- Timing
-const HOLD_T = 0.55;                     // beat before the ball is let go (the round has no countdown after the decision)
-const SEEN_AFTER_BOUNCE = 0.22;          // ball stays fully visible this long after the first bounce
+// ---------------------------------------------------- Difficulty (Stage 2b)
+// Less information each round, never different physics. One row per round; tune here.
+//   seenAfterBounce  ball stays fully visible this long after the first bounce, then fades over FADE_T
+//   hold             beat before the ball is let go (the round has no countdown after the decision)
+//   platformAlpha    how strongly the platforms are drawn; never hidden, they are what the player reads
+const DIFFICULTY = [
+  { seenAfterBounce: 0.22, hold: 0.55, platformAlpha: 1.00 },   // round 1: the Stage 1 values
+  { seenAfterBounce: 0.18, hold: 0.50, platformAlpha: 0.90 },
+  { seenAfterBounce: 0.14, hold: 0.45, platformAlpha: 0.80 },
+  { seenAfterBounce: 0.10, hold: 0.40, platformAlpha: 0.70 },
+  { seenAfterBounce: 0.06, hold: 0.35, platformAlpha: 0.60 },   // round 5: the first bounce itself is still fully visible
+];
+// Level generation must not depend on the round, so it works with the longest visible time:
+// the second bounce stays unseen at every difficulty.
+const SEEN_AFTER_BOUNCE_MAX = Math.max(...DIFFICULTY.map(d => d.seenAfterBounce));
 const FADE_T = 0.28;
 const SLOWMO_WINDOW = 0.5, SLOWMO_MIN = 0.5;   // last half second before the rim runs at half speed
 const RING_T = 0.7;
@@ -259,7 +272,7 @@ function validate(sim) {
     if (e.u < HIT_U_OK[0] || e.u > HIT_U_OK[1] || e.ny > -0.5) return false;
   }
   if (ev[0].t < 0.3) return false;                                    // a visible drop before the first bounce
-  if (ev[1].t - ev[0].t < SEEN_AFTER_BOUNCE + FADE_T + 0.1) return false; // the second bounce stays unseen
+  if (ev[1].t - ev[0].t < SEEN_AFTER_BOUNCE_MAX + FADE_T + 0.1) return false; // the second bounce stays unseen
   return true;
 }
 
@@ -279,7 +292,7 @@ const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 
 const game = {
   session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total }
-  roundSeed: 0, roundsPlayed: 0, level: null,
+  roundSeed: 0, roundsPlayed: 0, level: null, diff: null,
   state: 'observe',          // observe → reveal → result, five times, then summary
   clock: 0,                  // seconds since the round started
   summaryAge: 0, totalAge: 9,
@@ -316,7 +329,8 @@ function startRound(i) {
   game.level = generateLevel(game.roundSeed);
   game.state = 'observe'; game.clock = 0;
   game.firstBounce = game.level.base.events[0];
-  game.fadeStartT = game.firstBounce.t + SEEN_AFTER_BOUNCE;
+  game.diff = DIFFICULTY[Math.min(i, DIFFICULTY.length - 1)];
+  game.fadeStartT = game.firstBounce.t + game.diff.seenAfterBounce;
   game.flashedFirst = false;
   game.drag = null; game.reveal = null; game.flashes = []; game.rings = [];
   game.bucket.left = W / 2 - stepWidth(BUCKET_START_STEP) / 2;
@@ -337,7 +351,7 @@ function snapBucket(anchor) {
   const shift = Math.max(0, 2 - b.left) - Math.max(0, b.right - (W - 2));
   b.left += shift; b.right += shift;
 }
-function observeT() { return Math.max(0, game.clock - HOLD_T); }
+function observeT() { return Math.max(0, game.clock - game.diff.hold); }
 
 function classify(sim) {
   if (!sim.crossed) return 'miss';
@@ -566,9 +580,11 @@ function draw() {
 
   if (game.state === 'summary') { drawSummary(); return; }
 
-  // Platforms
+  // Platforms (drawn fainter in later rounds, never hidden)
+  ctx.globalAlpha = game.diff.platformAlpha;
   ctx.strokeStyle = C.platform; ctx.lineWidth = 5; ctx.lineCap = 'round';
   for (const p of game.level.platforms) { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
+  ctx.globalAlpha = 1;
 
   // Trail: the part the player saw stays faint, the revealed part is brighter.
   if (game.state !== 'observe') {
@@ -735,7 +751,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, generateLevel, simulate, classify, commit, advance, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
