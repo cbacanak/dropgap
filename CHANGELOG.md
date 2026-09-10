@@ -28,6 +28,16 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
+- Stage 2e: endless mode, a push-your-luck run. Entry without a menu: a
+  small "endless" word on the session end screen, or `?mode=endless`;
+  the five-round session stays the default. No round limit. After each
+  round: tap to continue, or "take ×N · finish" at the bottom right to
+  bank the total and end the run. A miss takes everything. Score is the
+  banked total. Difficulty holds at the fifth row from round 6 on, on
+  purpose. The header shows the round number and the running total; the
+  strip shows the last five rounds, older ones slide off to the left.
+  Run end: "banked ×N after R rounds" or "lost at round R"; a tap starts
+  a new run with seed N+1. No leaderboard, no sharing, no best score.
 - Stage 2c: risk layer. After each round's result there are two ways
   out: tap anywhere for the next round, or a small "take ×N · finish"
   target at the bottom that banks the total and closes the session.
@@ -75,6 +85,7 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
   The plan's 2c diagnosis ("if they never stop, the risk does not
   hurt") was wrong: the risk hurt, stopping was just unprofitable.
   2e moved ahead of 2d.
+- 2026-09-10: 2e opened.
 
 ## Stage 1 — Mechanic test
 
