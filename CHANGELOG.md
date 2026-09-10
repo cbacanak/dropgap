@@ -9,6 +9,12 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Touch area: the whole screen (PLAN §7.1). A drag starts anywhere,
+  relative as before. Letting go drops the ball once the finger has
+  left the dead zone at least once. A touch that never moved drops with
+  the bucket as it is in the bottom half, and does nothing in the top
+  half. Every part of the screen controls the bucket; a stray touch
+  while looking cannot end the round.
 - Layout, from the first two-person test (PLAN §7.1), four changes, no
   mechanic, physics or seed touched. The post-round "tap for the next
   round" moves from the bottom line, which nobody saw, to mid-field

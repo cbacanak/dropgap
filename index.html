@@ -37,10 +37,12 @@ function stepWidth(k) { return BUCKET_MIN * Math.pow(BUCKET_STEP_RATIO, k); }
 function maxStepIndex() { return BUCKET_STEPS - (game.rules ? game.rules.minMult : 1); }
 function maxBucketWidth() { return stepWidth(maxStepIndex()); }
 function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_STEP_RATIO)), 0, maxStepIndex()); }
-// The gesture: touch anywhere in the bottom band of the field and drag. Movement is relative to
-// where the finger landed (the bucket never jumps to it): sideways moves the bucket, up narrows it,
-// down widens it, both at once. No handles.
-const TOUCH_BAND_Y = H * 0.5;            // the band starts here: the bottom half. The top half is for looking (PLAN §7.1)
+// The gesture: touch anywhere and drag. Movement is relative to where the finger landed (the
+// bucket never jumps to it): sideways moves the bucket, up narrows it, down widens it, both at
+// once. No handles. Letting go drops the ball once the finger has left the dead zone at least
+// once; a touch that never moved drops only in the bottom half, and does nothing in the top half,
+// so a stray touch while looking at the platforms cannot end the round (PLAN §7.1).
+const TAP_DROP_Y = H * 0.5;              // a still touch at or below this line drops with the bucket as it is
 const DRAG_WIDTH_GAIN = 1.6;             // width units per vertical unit
 const DRAG_DEADZONE = 6;                 // wobble below this, on either axis, changes nothing
 
@@ -569,14 +571,16 @@ function toWorld(e) {
   return { x: (e.clientX - rect.left - view.ox) / view.scale, y: (e.clientY - rect.top - view.oy) / view.scale - HEADER_H };
 }
 
-function inTouchBand(p) { return p.y >= TOUCH_BAND_Y && p.y <= H && p.x >= 0 && p.x <= W; }
+function tapDrops(y) { return y >= TAP_DROP_Y; }
 function pastDeadzone(v) { return Math.abs(v) <= DRAG_DEADZONE ? 0 : v - Math.sign(v) * DRAG_DEADZONE; }
 
 // Relative to where the finger landed: sideways = position, up = narrower, down = wider.
 function applyDrag(p) {
   const b = game.bucket, d = game.drag;
-  const w = clamp(d.startW - pastDeadzone(d.startY - p.y) * DRAG_WIDTH_GAIN, BUCKET_MIN, maxBucketWidth());
-  const cx = clamp(d.startCx + pastDeadzone(p.x - d.startX), w / 2 + 2, W - w / 2 - 2);
+  const dy = pastDeadzone(d.startY - p.y), dx = pastDeadzone(p.x - d.startX);
+  if (dx !== 0 || dy !== 0) d.moved = true;                       // past the dead zone at least once: letting go will drop
+  const w = clamp(d.startW - dy * DRAG_WIDTH_GAIN, BUCKET_MIN, maxBucketWidth());
+  const cx = clamp(d.startCx + dx, w / 2 + 2, W - w / 2 - 2);
   b.left = cx - w / 2; b.right = cx + w / 2;
 }
 
@@ -600,8 +604,7 @@ canvas.addEventListener('pointerdown', e => {
   }
   if (game.state !== 'observe') return;
   const p = toWorld(e);
-  if (!inTouchBand(p)) return;
-  game.drag = { id: e.pointerId, startX: p.x, startY: p.y, startCx: bucketCx(), startW: bucketWidth() };
+  game.drag = { id: e.pointerId, startX: p.x, startY: p.y, startCx: bucketCx(), startW: bucketWidth(), moved: false };
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   canvas.style.cursor = 'grabbing';
 });
@@ -612,15 +615,17 @@ canvas.addEventListener('pointermove', e => {
     return;
   }
   if (e.pointerType === 'mouse') {
-    canvas.style.cursor = game.state === 'observe' ? (inTouchBand(toWorld(e)) ? 'grab' : 'default') : (canAdvance() ? 'pointer' : 'default');
+    canvas.style.cursor = game.state === 'observe' ? 'grab' : (canAdvance() ? 'pointer' : 'default');
   }
 });
 canvas.addEventListener('pointerup', e => {
   if (!game.drag || e.pointerId !== game.drag.id) return;
-  applyDrag(toWorld(e));
-  snapBucket();
+  const p = toWorld(e), d = game.drag;
+  applyDrag(p);
   game.drag = null;
   canvas.style.cursor = 'default';
+  if (!d.moved && !tapDrops(d.startY)) return;                           // a still touch in the top half: nothing happens
+  snapBucket();
   commit();
 });
 canvas.addEventListener('pointercancel', e => {
@@ -940,7 +945,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, inTouchBand, TOUCH_BAND_Y, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
