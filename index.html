@@ -291,7 +291,8 @@ const ctx = canvas.getContext('2d');
 const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 
 const game = {
-  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total }
+  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, outcome, endedAt }
+                             // outcome: null while playing, then 'banked' | 'bust' | 'complete'; endedAt: rounds played
   roundSeed: 0, roundsPlayed: 0, level: null, diff: null,
   state: 'observe',          // observe → reveal → result, five times, then summary
   clock: 0,                  // seconds since the round started
@@ -317,7 +318,7 @@ function roundSeed(sessionSeed, i) {
 }
 
 function startSession(seed) {
-  game.session = { seed, index: 0, rounds: [], total: 0 };
+  game.session = { seed, index: 0, rounds: [], total: 0, outcome: null, endedAt: 0 };
   game.totalAge = 9;
   writeSeed(seed);
   startRound(0);
@@ -381,11 +382,31 @@ function scoreFor(result, mult) {
   return 0;
 }
 
-// After a round: the next round, or the session result after the last one. After the result: a new session.
+// After a round there are two ways out (Stage 2c): tap anywhere for the next round, or take the
+// total and finish (the pill at the bottom). Continue and miss, and the total is gone and the
+// session is over. The fifth round takes the total by itself; there is no choice there.
+// Nothing here weighs the choice for the player.
+function openSummary() {
+  const s = game.session;
+  s.endedAt = s.rounds.length;
+  game.state = 'summary'; game.summaryAge = 0; game.drag = null;
+}
+function bankAvailable() {
+  const s = game.session;
+  return game.state !== 'summary' && canAdvance() && !s.outcome && s.index + 1 < SESSION_ROUNDS;
+}
+function bank() {
+  if (!bankAvailable()) return;
+  game.session.outcome = 'banked';
+  openSummary();
+}
+function bankPill() { const w = 156, h = 26; return { x: W - 12 - w, y: H - 12 - h, w, h }; }
 function advance() {
-  if (game.state === 'summary') { startSession((game.session.seed + 1) >>> 0); return; }
-  if (game.session.index + 1 < SESSION_ROUNDS) startRound(game.session.index + 1);
-  else { game.state = 'summary'; game.summaryAge = 0; game.drag = null; }
+  const s = game.session;
+  if (game.state === 'summary') { startSession((s.seed + 1) >>> 0); return; }
+  if (s.outcome) { openSummary(); return; }                       // the miss already ended the session
+  if (s.index + 1 < SESSION_ROUNDS) startRound(s.index + 1);
+  else { s.outcome = 'complete'; openSummary(); }
 }
 
 function timeScale(t, target) {
@@ -427,7 +448,9 @@ function update(dt) {
       if (r.result !== 'miss') game.rings.push({ x: sim.crossX, y: RIM_Y, kind: r.result, age: 0 });
       const s = game.session;                                       // the round lands in the session at the result moment
       s.rounds.push({ mult: r.mult, width: r.width, result: r.result, score: r.score });
-      s.total += r.score; game.totalAge = 0;
+      if (r.result === 'miss') { s.total = 0; s.outcome = 'bust'; }   // continued and missed: the total is gone, the session is over
+      else s.total += r.score;
+      game.totalAge = 0;
     }
     if (r.shown) r.age += dt;
     if (r.shown && r.simT >= sim.endT) game.state = 'result';
@@ -480,7 +503,13 @@ canvas.addEventListener('pointerdown', e => {
   if (e.button != null && e.button !== 0) return;
   e.preventDefault();
   if (game.drag) return;
-  if (canAdvance()) { advance(); return; }
+  if (canAdvance()) {
+    if (bankAvailable()) {
+      const p = toWorld(e), b = bankPill();
+      if (p.x >= b.x - 10 && p.x <= b.x + b.w + 10 && p.y >= b.y - 10 && p.y <= b.y + b.h + 10) { bank(); return; }
+    }
+    advance(); return;
+  }
   if (game.state !== 'observe') return;
   const p = toWorld(e);
   const mode = hitTestBucket(p);
@@ -660,7 +689,19 @@ function draw() {
     ctx.fillText('drag the bucket to place it · drag up to narrow it', W / 2, H - 30);
     ctx.fillText('let go to drop', W / 2, H - 12);
   } else if (canAdvance()) {
-    ctx.fillText(game.session.index + 1 < SESSION_ROUNDS ? 'tap for the next round' : 'tap to finish the session', W / 2, H - 12);
+    if (game.session.outcome === 'bust') ctx.fillText('tap to finish', W / 2, H - 12);
+    else if (game.session.index + 1 >= SESSION_ROUNDS) ctx.fillText('tap to finish the session', W / 2, H - 12);
+    else {
+      // Two ways out, side by side, stated plainly: the next round, or take what is there.
+      ctx.textAlign = 'left'; ctx.fillText('tap for the next round', 12, H - 18);
+      const p = bankPill();
+      ctx.globalAlpha = clamp((game.reveal.age - 0.6) / 0.3, 0, 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.04)'; roundedRect(p.x, p.y, p.w, p.h, 13); ctx.fill();
+      ctx.strokeStyle = C.dim; ctx.lineWidth = 1; roundedRect(p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1, 12.5); ctx.stroke();
+      ctx.textAlign = 'center'; ctx.fillStyle = C.text; ctx.font = `600 12px ${FONT}`;
+      ctx.fillText(`take ×${game.session.total} · finish`, p.x + p.w / 2, p.y + p.h / 2 + 4);
+      ctx.globalAlpha = 1;
+    }
   }
 }
 
@@ -701,11 +742,17 @@ function drawSummary() {
 
   const x0 = 50, top = 305, rowH = 22, step = 46;
   for (let i = 0; i < SESSION_ROUNDS; i++) {
-    const rd = s.rounds[i];
-    if (!rd) continue;
+    const rd = s.rounds[i], y = top + i * step;
+    if (!rd) {                                                  // a round that was never played: an empty slot
+      ctx.textAlign = 'right'; ctx.fillStyle = C.line; ctx.font = `500 11px ${FONT}`;
+      ctx.fillText(String(i + 1), x0 - 12, y + rowH / 2 + 4);
+      ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0, y + rowH + 0.5); ctx.lineTo(x0 + 40, y + rowH + 0.5); ctx.stroke();
+      continue;
+    }
     const k = smooth((age - 0.1 - i * 0.12) / 0.3);          // bars grow in one after another
     if (k <= 0) continue;
-    const y = top + i * step, len = rd.width * k;
+    const len = rd.width * k;
     ctx.textAlign = 'right'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
     ctx.fillText(String(i + 1), x0 - 12, y + rowH / 2 + 4);
     if (rd.result === 'miss') {
@@ -717,7 +764,7 @@ function drawSummary() {
     }
     if (k >= 1) {
       ctx.textAlign = 'right'; ctx.font = `600 14px ${FONT}`;
-      ctx.fillStyle = rd.result === 'miss' ? C.faint : C[rd.result];
+      ctx.fillStyle = rd.result === 'miss' || s.outcome === 'bust' ? C.faint : C[rd.result];   // after a bust the points are history
       ctx.fillText(rd.score ? '×' + rd.score : '0', W - 30, y + rowH / 2 + 5);
     }
   }
@@ -727,6 +774,11 @@ function drawSummary() {
     ctx.textAlign = 'center'; ctx.fillStyle = C.text;
     ctx.font = `700 ${(56 * (0.9 + 0.1 * tk)).toFixed(1)}px ${FONT}`;
     ctx.fillText('×' + s.total, W / 2, 235);
+    // How the session ended: the same fact the strip shows, in words.
+    const how = s.outcome === 'banked' ? `took it after round ${s.endedAt}`
+      : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds';
+    ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
+    ctx.fillText(how, W / 2, 262);
     ctx.globalAlpha = 1;
   }
   if (age > 1.3) {
@@ -751,7 +803,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
