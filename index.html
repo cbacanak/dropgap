@@ -95,6 +95,11 @@ const MODES = {
   endless: { rounds: Infinity, bank: true },
 };
 const STRIP_SLOTS = 5;                   // the strip shows the last five rounds; older ones slide off to the left
+// Endless keeps one number on this device: the best banked total (2e finding: a banked total needs
+// somewhere to go, or taking and losing feel the same). Just the number; no advice, no warnings.
+const BEST_KEY = 'dropgap.endless.best';
+function loadBest() { try { return Math.max(0, parseInt(localStorage.getItem(BEST_KEY), 10) || 0); } catch (e) { return 0; } }
+function saveBest(n) { try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) { /* private mode, blocked storage */ } }
 const HEADER_H = 34;                     // band above the play field: seed, round, total, and the strip of finished rounds
 const STRIP_SLOT = 46, STRIP_GAP = 6, STRIP_H = 7;   // five slots; a bar at BUCKET_MAX fills a slot
 
@@ -305,6 +310,7 @@ const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 
 const game = {
   mode: 'session',           // 'session' | 'endless' (see MODES)
+  best: 0, newBest: false,   // endless only: best banked total on this device, and whether this run set it
   session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, outcome, endedAt }
                              // outcome: null while playing, then 'banked' | 'bust' | 'complete'; endedAt: rounds played
   roundSeed: 0, roundsPlayed: 0, level: null, diff: null,
@@ -343,7 +349,7 @@ function roundSeed(sessionSeed, i) {
 
 function startSession(seed) {
   game.session = { seed, index: 0, rounds: [], total: 0, outcome: null, endedAt: 0 };
-  game.totalAge = 9; game.stripShiftAge = 9;
+  game.totalAge = 9; game.stripShiftAge = 9; game.newBest = false;
   writeSeed(seed);
   startRound(0);
 }
@@ -423,9 +429,11 @@ function bankAvailable() {
 function bank() {
   if (!bankAvailable()) return;
   game.session.outcome = 'banked';
+  if (game.mode === 'endless' && game.session.total > game.best) { game.best = game.session.total; game.newBest = true; saveBest(game.best); }
   openSummary();
 }
 function bankPill() { const w = 156, h = 26; return { x: W - 12 - w, y: H - 12 - h, w, h }; }
+function bankLabel() { return `take ×${game.session.total} · ${game.best > 0 ? 'best ' + game.best : 'finish'}`; }
 function advance() {
   const s = game.session;
   if (game.state === 'summary') { startSession((s.seed + 1) >>> 0); return; }
@@ -727,7 +735,7 @@ function draw() {
       ctx.fillStyle = 'rgba(255,255,255,0.04)'; roundedRect(p.x, p.y, p.w, p.h, 13); ctx.fill();
       ctx.strokeStyle = C.dim; ctx.lineWidth = 1; roundedRect(p.x + 0.5, p.y + 0.5, p.w - 1, p.h - 1, 12.5); ctx.stroke();
       ctx.textAlign = 'center'; ctx.fillStyle = C.text; ctx.font = `600 12px ${FONT}`;
-      ctx.fillText(`take ×${game.session.total} · finish`, p.x + p.w / 2, p.y + p.h / 2 + 4);
+      ctx.fillText(bankLabel(), p.x + p.w / 2, p.y + p.h / 2 + 4);
       ctx.globalAlpha = 1;
     }
   }
@@ -818,7 +826,7 @@ function drawSummary() {
     ctx.fillText('×' + s.total, W / 2, 235);
     // How it ended: the same fact the strip shows, in words.
     const how = endless
-      ? (s.outcome === 'banked' ? `banked ×${s.total} after ${s.endedAt} round${s.endedAt === 1 ? '' : 's'}` : `lost at round ${s.endedAt}`)
+      ? (s.outcome !== 'banked' ? `lost at round ${s.endedAt}` : game.newBest ? `new best ×${s.total}` : `banked ×${s.total} · best ${game.best}`)
       : (s.outcome === 'banked' ? `took it after round ${s.endedAt}` : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds');
     ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
     ctx.fillText(how, W / 2, 262);
@@ -844,12 +852,13 @@ function frame(now) {
 
 resize();
 game.mode = readMode();
+game.best = loadBest();
 startSession(readSeed());
 requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>

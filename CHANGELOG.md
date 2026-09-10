@@ -28,6 +28,11 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
+- Endless best score, kept on the device in `localStorage` (2e
+  finding: a banked total needs somewhere to go, or taking and losing
+  feel the same). The target reads "take ×35 · best 41"; the run end
+  reads "banked ×35 · best 41", or "new best ×48" when the run set it.
+  Just the number, no advice. The session is untouched.
 - Stage 2e: endless mode, a push-your-luck run. Entry without a menu: a
   small "endless" word on the session end screen, or `?mode=endless`;
   the five-round session stays the default. No round limit. After each
@@ -86,6 +91,8 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
   hurt") was wrong: the risk hurt, stopping was just unprofitable.
   2e moved ahead of 2d.
 - 2026-09-10: 2e opened.
+- 2026-09-10: 2e finding: take-and-finish still unused, because a
+  banked total had nowhere to go. Local best score added to endless.
 
 ## Stage 1 — Mechanic test
 
