@@ -15,10 +15,11 @@ without spoiling it.
 
 ## Status
 
-Stage 1 prototype is built and being tested.
+Stage 1 passed the five-person test. Stage 2a (a five-round session
+with a total score) is built.
 
 Play: https://cbacanak.github.io/dropgap/ — a single `index.html`,
-no build step. Add `?seed=123` to replay a specific round; the round
+no build step. Add `?seed=123` to replay a specific session; the
 number shown top-left is its seed.
 
 ## Plan
@@ -38,10 +39,11 @@ Two rules matter most:
 
 ## Current stage
 
-**Stage 1 — mechanic test.** Single round, single page. No score, no
-sharing, no daily mode, no round types, no layers.
+**Stage 2a — session.** Five rounds, one total. The rest of Stage 2
+(2b–2f) comes one step at a time, each its own PR, each with its own
+stop test.
 
-The whole question: do five people say "one more"?
+Stage 1's question, "do five people say one more?", was answered yes.
 
 ## Log
 
