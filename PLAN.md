@@ -177,19 +177,19 @@ kısaltılabilir.
 uçta yayvan. ×2→×1 arası ekranın yarısı, ×1 altında kova büyümeye
 devam ediyor ama rakam değişmiyordu — geri bildirim ölüyordu.
 
-**Karar:** Kova genişliği on geometrik adıma kilitli, her adım bir
-öncekinin 1,29 katı. ×10 = 26, ×9 = 34, ×8 = 43, ×7 = 56, ×6 = 72,
-×5 = 93, ×4 = 121, ×3 = 156, ×2 = 201, ×1 = 260. Çarpan artık genişliği
-tarif etmiyor, genişliğin kendisi. Sürüklerken akıcı, bırakınca en
-yakın adıma oturuyor. ×1 ötesinde genişleme yok. Varsayılan ×4.
+**Karar:** Kova genişliği on geometrik adıma kilitli, oran
+`BUCKET_STEP_RATIO`. İlk değer 1,29 (×1 = 260, alanın %65'i) — 2c'de
+geniş kovanın bedava devam hakkı olduğu görülünce 1,22'ye indirildi.
+Güncel merdiven: ×10 = 26, ×9 = 32, ×8 = 39, ×7 = 47, ×6 = 58, ×5 = 70,
+×4 = 86, ×3 = 105, ×2 = 128, ×1 = 156. ×1 alanın %49'u — güvenli ama
+bedava değil. Çarpan artık genişliği tarif etmiyor, genişliğin kendisi.
+Sürüklerken akıcı, bırakınca en yakın adıma oturuyor. ×1 ötesinde
+genişleme yok. Varsayılan ×4.
 
 Yan kazanç: paylaşım kartındaki "uzunluk = risk" artık tam olarak on
 seviye.
 
-**Aşama 2 için ayar notu:** ×1 alanın %65'i, ×2 yarısı — ikisi de
-neredeyse garanti. Gerçek karar aralığı ×3 ve üstü. Zorluk eğrisi
-kurulurken alt iki adım "karar" hissettirmiyorsa oran sabiti
-düşürülür ve ×1 daralır.
+**Sıradaki kaldıraç, gerekirse:** oran değil, orta bölge payı.
 
 ### Aşama 2 — Oyun döngüsü (3–5 gün)
 
@@ -208,8 +208,8 @@ kovanın üstünde kazanılan puan ("+3"), adım değil. Kova genişliğinin
 turlar arası taşınması hipotezi ayrı test için bekletildi, şerit
 sonrası gerek kalmadı — kova her tur ×4'e sıfırlanmaya devam ediyor.
 Puanlama: tam orta = çarpanın tamamı, kenar = yarısı yukarı
-yuvarlanmış (`EDGE_SCORE = 0.5`), ıska = 0. Iska turu götürür, seansı
-değil — seans kaybı 2c'de oyuncunun seçeceği bir şey olacak.
+yuvarlanmış (`EDGE_SCORE = 0.5`), ıska = 0. ~~Iska turu götürür, seansı
+değil~~ — *2c ile değişti: ıska seansı bitirir, birinci tur dahil.*
 *İzlenecek:* ×8 ve üstünde orta ile kenar arası bir top yarıçapı;
 orada tam mı yarım mı şans. Oyunda hissedilirse dar adımlarda orta
 bölgeye mutlak alt sınır konur.
@@ -245,10 +245,48 @@ devam et / dur kararı.
 *Kontrol:* Oyuncu gerçekten duruyor mu, yoksa hep sonuna kadar mı
 gidiyor? Hep gidiyorsa risk yeterince acıtmıyor demektir.
 
+*2c durumu (10 Eyl, PR #10 + #11): kapandı, buton kaldırıldı, kural
+kaldı.*
+İki bulgu. Birincisi: geniş kova bedava devam hakkıydı — ×1 alanın
+%65'i, ıskalanmıyordu; "genişle ve devam et" her zaman "al ve
+bitir"den iyiydi. Düzeltme: `BUCKET_STEP_RATIO` 1,29→1,22, ×1 = 156
+(alanın %49'u), ×4 varsayılanı 86. Geniş kova artık risk taşıyor,
+×4 daha doğal hissettirdi.
+
+İkincisi ve yapısal: daraltmadan sonra da buton hiç kullanılmadı, ve
+kullanılmaması **doğru oyun.** Beş turluk seansta beşinci tur otomatik
+aldığı için "devam"ın en kötü hali iki turluk kayıp; durmak neredeyse
+hiç kârlı değil. Beş tur, şansını zorlama mekaniği için fazla kısa.
+
+**Sonuç:** Seans riski butondan değil, **ıska-seansı-bitirir**
+kuralından geliyor (birinci tur dahil — tek kural, özel durum yok;
+"cepte bir şey yokken ıska turu götürür" alternatifi sıfırı güvenli
+bölge yapacağı için reddedildi). Kural "kaybettim" dedirtti, buton
+dedirtmedi. Genişlik zaten risk kadranı, kural zaten seans bedeli;
+buton beş turluk seansta bir tasarımın iki kez konuşması. Kaldırıldı.
+Buton 2e'de sonsuz modun çekirdeği olarak geri geliyor — açık uçlu
+koşuda "al ve bitir" gerçekten karar.
+
+Plandaki 2c teşhisi ("hep gidiyorsa risk acıtmıyor") yanlıştı: risk
+acıtıyordu, durmak sadece kârsızdı.
+
+**Sıra değişikliği:** 2e, 2d'nin önüne alındı. İki açık soru — tavan
+var mı (2b), buton işe yarar mı (2c) — ikisi de yalnızca sonsuz modda
+görünür.
+
+**2e — Sonsuz mod: şansını zorla.** Açık uçlu koşu. Her turdan sonra
+"al ve bitir" ya da devam. Iska her şeyi götürür. Tur sınırı yok;
+koşu, oyuncu aldığında veya ıskaladığında biter. Skor = alınan toplam.
+Sıralama yok, paylaşım yok.
+*Kontrol 1:* Oyuncu duruyor mu? Burada durmak gerçekten karar; hâlâ
+hiç durmuyorsa buton kalıcı olarak gider.
+*Kontrol 2:* Uzun koşuda tavan görünüyor mu? Onuncu turdan sonra
+"hepsi aynı" hissi gelirse doğru kaldıraç platform okunurluğu (2b'nin
+bulgusu), sekme süresi değil.
+*Kontrol 3:* 0,55 sn düşüş öncesi vuruş uzun koşuda sıkıyor mu.
+
 **2d — İkinci tur tipi (§0.1'den bir tane).** Çeşitlilik testi.
 *Kontrol:* Aynı jest ikinci tipte de doğal mı hissettiriyor.
-
-**2e — Sonsuz mod.** "Bir daha" dürtüsünün yaşadığı yer.
 
 **2f — Bilgiyi satın al (§2.2).** En son. Diğer katmanlar oturmadan
 eklenirse dengeyi ölçemezsin.

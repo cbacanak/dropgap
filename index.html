@@ -84,6 +84,9 @@ const RING_T = 0.7;
 // -------------------------------------------------------- Session (Stage 2a)
 const SESSION_ROUNDS = 5;
 const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
+const BANK_OFFERED = false;              // "take ×N · finish" is not offered in the five-round session (2c finding: with the
+                                         // fifth round banking by itself, stopping early is almost never worth it). The
+                                         // miss-ends-the-session rule stays. The target returns in 2e as the core of endless mode.
 const HEADER_H = 34;                     // band above the play field: seed, round, total, and the strip of finished rounds
 const STRIP_SLOT = 46, STRIP_GAP = 6, STRIP_H = 7;   // five slots; a bar at BUCKET_MAX fills a slot
 
@@ -395,7 +398,7 @@ function openSummary() {
 }
 function bankAvailable() {
   const s = game.session;
-  return game.state !== 'summary' && canAdvance() && !s.outcome && s.index + 1 < SESSION_ROUNDS;
+  return BANK_OFFERED && game.state !== 'summary' && canAdvance() && !s.outcome && s.index + 1 < SESSION_ROUNDS;
 }
 function bank() {
   if (!bankAvailable()) return;
@@ -693,6 +696,7 @@ function draw() {
   } else if (canAdvance()) {
     if (game.session.outcome === 'bust') ctx.fillText('tap to finish', W / 2, H - 12);
     else if (game.session.index + 1 >= SESSION_ROUNDS) ctx.fillText('tap to finish the session', W / 2, H - 12);
+    else if (!bankAvailable()) ctx.fillText('tap for the next round', W / 2, H - 12);
     else {
       // Two ways out, side by side, stated plainly: the next round, or take what is there.
       ctx.textAlign = 'left'; ctx.fillText('tap for the next round', 12, H - 18);
