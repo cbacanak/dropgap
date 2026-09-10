@@ -15,7 +15,11 @@ without spoiling it.
 
 ## Status
 
-Pre-prototype. Nothing is built yet.
+Stage 1 prototype is built and being tested.
+
+Play: https://cbacanak.github.io/dropgap/ — a single `index.html`,
+no build step. Add `?seed=123` to replay a specific round; the round
+number shown top-left is its seed.
 
 ## Plan
 
