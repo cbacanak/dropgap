@@ -33,7 +33,10 @@ const BUCKET_STEP_RATIO = 1.22;          // each step is this much wider than th
 const BUCKET_MAX = BUCKET_MIN * Math.pow(BUCKET_STEP_RATIO, BUCKET_STEPS - 1);   // ×1, the widest; nothing wider (≈156 at 1.22)
 const BUCKET_START_STEP = 6;             // ×4
 function stepWidth(k) { return BUCKET_MIN * Math.pow(BUCKET_STEP_RATIO, k); }
-function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_STEP_RATIO)), 0, BUCKET_STEPS - 1); }
+// The widest step still on the ladder: ×1 normally; in endless the ladder can raise the floor (§2e.1).
+function maxStepIndex() { return BUCKET_STEPS - (game.rules ? game.rules.minMult : 1); }
+function maxBucketWidth() { return stepWidth(maxStepIndex()); }
+function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_STEP_RATIO)), 0, maxStepIndex()); }
 const BODY_DRAG_SETS_WIDTH = true;       // body drag: sideways = position, up/down = width (up = narrower)
 const BODY_DRAG_WIDTH_GAIN = 1.6;        // width units per vertical unit
 const BODY_DRAG_DEADZONE = 6;            // vertical wobble below this does not change the width
@@ -52,7 +55,14 @@ const REST_SPEED = 25;                   // a bounce slower than this dies
 
 // ------------------------------------------------- Level generation bounds
 // Solvable, not chaotic: angles, hit points and landing spots stay well inside these ranges.
-const BANDS = [[150, 190], [305, 345], [450, 495]];   // platform centre y, per platform
+const BANDS = [[150, 190], [305, 345], [450, 495]];   // platform centre y, per platform (the session's three)
+// Bands for n platforms. Three is the session's fixed layout and must not move; the other counts
+// spread evenly over the same vertical range, with tighter jitter when crowded.
+function bandsFor(n) {
+  if (n === 3) return BANDS;
+  const top = 170, bottom = 472, half = n >= 5 ? 15 : 20;
+  return Array.from({ length: n }, (_, i) => { const c = top + (bottom - top) * i / (n - 1); return [c - half, c + half]; });
+}
 const PLAT_LEN = [80, 120];
 const PLAT_ANGLE = [6, 18];              // degrees (magnitude); sign is random, then repaired away from walls
 const HIT_U = [0.2, 0.45];               // aim point along the platform, measured from the downhill end (uphill hits skip)
@@ -97,22 +107,52 @@ const MODES = {
 const STRIP_SLOTS = 5;                   // the strip shows the last five rounds; older ones slide off to the left
 
 // ------------------------------------------- Endless platform style (the ceiling lever)
-// Endless only. How the platforms are drawn changes with the round; the physics, the seeds and the
-// generator do not. Each row applies from its round on. alpha null = the DIFFICULTY row's strength.
-// bar false = no bar, only the two endpoints as small dots: the angle can always be derived, the
-// endpoints never disappear. The first bounce stays fully visible in every round.
-const ENDLESS_PLATFORM_STYLE = [
-  { from: 1,  bar: true,  alpha: null },   // rounds 1–5: as the difficulty table says
-  { from: 6,  bar: true,  alpha: 0.45 },
-  { from: 11, bar: false, alpha: 1.00 },   // endpoints only, full strength
-  { from: 16, bar: false, alpha: 0.60 },   // endpoints at 60%, never less
+// ------------------------------------------- Endless ladder (PLAN §2e.1)
+// Endless only. One row per round band, five columns; each row changes one column from the row
+// before it, so the player notices that something changed but never asks "what happened".
+//   platforms  how many platforms the ball bounces off (the generator places 2–5)
+//   fade       where the ball fades out, from the round's geometry, never from a clock:
+//              'nearNext' gone just before the second platform, 'half' from halfway along the
+//              path between the first bounce and the second platform, 'after' right after the
+//              first bounce (the session's value)
+//   minMult    the lowest bucket step still on the ladder; the steps below it are gone
+//   alpha      how strongly the platforms are drawn
+//   draw       'bar', or 'dots' (endpoints only: they never disappear, the angle can always be read)
+// The first bounce is fully visible in every row. Physics and the generator's rules do not change;
+// the platform count is part of the round, so endless seeds differ from before this ladder.
+const ENDLESS_LADDER = [
+  { from: 1,  platforms: 2, fade: 'nearNext', minMult: 1, alpha: 1.00, draw: 'bar' },
+  { from: 4,  platforms: 3, fade: 'nearNext', minMult: 1, alpha: 1.00, draw: 'bar' },
+  { from: 7,  platforms: 3, fade: 'half',     minMult: 1, alpha: 1.00, draw: 'bar' },
+  { from: 10, platforms: 4, fade: 'half',     minMult: 1, alpha: 1.00, draw: 'bar' },
+  { from: 13, platforms: 4, fade: 'half',     minMult: 2, alpha: 1.00, draw: 'bar' },
+  { from: 16, platforms: 4, fade: 'half',     minMult: 2, alpha: 0.65, draw: 'bar' },
+  { from: 19, platforms: 4, fade: 'after',    minMult: 2, alpha: 0.65, draw: 'bar' },
+  { from: 22, platforms: 5, fade: 'after',    minMult: 2, alpha: 0.65, draw: 'bar' },
+  { from: 25, platforms: 5, fade: 'after',    minMult: 3, alpha: 0.65, draw: 'bar' },
+  { from: 28, platforms: 5, fade: 'after',    minMult: 3, alpha: 0.45, draw: 'bar' },
+  { from: 31, platforms: 5, fade: 'after',    minMult: 3, alpha: 1.00, draw: 'dots' },   // as written in the plan: alpha and draw both change here
 ];
-function platformStyle() {
-  if (game.mode !== 'endless') return { bar: true, alpha: game.diff.platformAlpha };
-  const round = game.session.index + 1;
-  let row = ENDLESS_PLATFORM_STYLE[0];
-  for (const r of ENDLESS_PLATFORM_STYLE) if (round >= r.from) row = r;
-  return { bar: row.bar, alpha: row.alpha == null ? game.diff.platformAlpha : row.alpha };
+function ladderRow(round) { let row = ENDLESS_LADDER[0]; for (const r of ENDLESS_LADDER) if (round >= r.from) row = r; return row; }
+// The rules for a round: the ladder row in endless; the session's fixed shape otherwise.
+function rulesFor(mode, index, diff) {
+  if (mode === 'endless') return ladderRow(index + 1);
+  return { platforms: 3, fade: 'after', minMult: 1, alpha: diff.platformAlpha, draw: 'bar' };
+}
+// Where the ball fades out, from the round's geometry; never earlier than the first bounce itself.
+function fadeStartFor(sim, fade, seenAfterBounce) {
+  const t1 = sim.events[0].t, t2 = sim.events[1].t;
+  const t = fade === 'nearNext' ? t2 - FADE_T - 0.04 : fade === 'half' ? halfwayT(sim, t1, t2) : t1 + seenAfterBounce;
+  return Math.max(t, t1 + 0.06);
+}
+function halfwayT(sim, t0, t1) {   // the time at which the ball has covered half the path length between t0 and t1
+  const i0 = Math.round(t0 / DT), i1 = Math.round(t1 / DT);
+  const seg = i => Math.hypot(sim.xs[i] - sim.xs[i - 1], sim.ys[i] - sim.ys[i - 1]);
+  let total = 0;
+  for (let i = i0 + 1; i <= i1; i++) total += seg(i);
+  let acc = 0;
+  for (let i = i0 + 1; i <= i1; i++) { acc += seg(i); if (acc >= total / 2) return i * DT; }
+  return (t0 + t1) / 2;
 }
 // Endless keeps one number on this device: the best total ever reached. Shown in the header during
 // a run. Just the number; no advice, no warnings.
@@ -242,7 +282,7 @@ function posAt(sim, t) {
 
 // ------------------------------------------------------ Level generation
 // Each platform is placed on the ball's actual path (found by simulating the platforms
-// placed so far), so every round has exactly three bounces, in order, on the top face,
+// placed so far), so every round has exactly n bounces (n = 2–5), in order, on the top face,
 // away from the platform ends, with no wall contact — then the whole thing is verified.
 // deg > 0 tilts the platform down to the right (the ball is sent right); u is measured
 // from the downhill end, because a ball landing on the uphill half skips down the slope.
@@ -256,24 +296,24 @@ function makePlatform(xh, cy, len, deg, u) {
 
 // Does the path stay clean after platform i? Before the last one: reach the next band with
 // no wall contact and a single bounce on the new platform. After the last one: the full check.
-function probeAfter(x0, platforms, i) {
-  if (i < 2) {
-    const nextY = (BANDS[i + 1][0] + BANDS[i + 1][1]) / 2;
+function probeAfter(x0, platforms, i, n, bands) {
+  if (i < n - 1) {
+    const nextY = (bands[i + 1][0] + bands[i + 1][1]) / 2;
     const p = simulate({ x0, platforms }, null, { untilY: nextY, maxT: MAX_FLIGHT_T });
     if (!p.reachedY) return null;
     if (p.events.some(e => e.kind !== 'platform') || p.events.filter(e => e.index === i).length !== 1) return null;
     return {};
   }
   const base = simulate({ x0, platforms }, null, { stopAtRim: true, maxT: MAX_FLIGHT_T + 0.5 });
-  return validate(base) ? { base } : null;
+  return validate(base, n) ? { base } : null;
 }
 
-function tryGenerate(rnd) {
+function tryGenerate(rnd, n) {
   const x0 = lerp(110, W - 110, rnd());
-  const platforms = [];
+  const bands = bandsFor(n), platforms = [];
   let base = null;
-  for (let i = 0; i < 3; i++) {
-    const cy = lerp(BANDS[i][0], BANDS[i][1], rnd());
+  for (let i = 0; i < n; i++) {
+    const cy = lerp(bands[i][0], bands[i][1], rnd());
     const len = lerp(PLAT_LEN[0], PLAT_LEN[1], rnd());
     const mag = lerp(PLAT_ANGLE[0], PLAT_ANGLE[1], rnd());
     const u = lerp(HIT_U[0], HIT_U[1], rnd());
@@ -289,7 +329,7 @@ function tryGenerate(rnd) {
     let placed = null;
     for (const [s, m] of [[sign, mag], [-sign, mag], [sign, mag * 0.6], [-sign, mag * 0.6]]) {
       const p = makePlatform(xh, cy, len, s * m, u);
-      const r = probeAfter(x0, platforms.concat(p), i);
+      const r = probeAfter(x0, platforms.concat(p), i, n, bands);
       if (r) { placed = p; base = r.base || null; break; }
     }
     if (!placed) return null;
@@ -298,12 +338,12 @@ function tryGenerate(rnd) {
   return { x0, platforms, base };
 }
 
-function validate(sim) {
+function validate(sim, n) {
   if (!sim.crossed || sim.crossT > MAX_FLIGHT_T) return false;
   if (sim.crossX < LANDING_X[0] || sim.crossX > LANDING_X[1]) return false;
   const ev = sim.events;
-  if (ev.length !== 3) return false;
-  for (let i = 0; i < 3; i++) {
+  if (ev.length !== n) return false;
+  for (let i = 0; i < n; i++) {
     const e = ev[i];
     if (e.kind !== 'platform' || e.index !== i || !e.bounced) return false;
     if (e.u < HIT_U_OK[0] || e.u > HIT_U_OK[1] || e.ny > -0.5) return false;
@@ -313,13 +353,14 @@ function validate(sim) {
   return true;
 }
 
-function generateLevel(seed) {
+function generateLevel(seed, n) {
+  n = n || 3;
   const rnd = mulberry32(seed);
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const lvl = tryGenerate(rnd);
-    if (lvl) { lvl.seed = seed; lvl.attempts = attempt; return lvl; }
+    const lvl = tryGenerate(rnd, n);
+    if (lvl) { lvl.seed = seed; lvl.attempts = attempt; lvl.platformCount = n; return lvl; }
   }
-  return generateLevel((seed + 1) >>> 0); // practically unreachable; keeps the page alive
+  return generateLevel((seed + 1) >>> 0, n); // practically unreachable; keeps the page alive
 }
 
 // ------------------------------------------------------------------ Game
@@ -332,7 +373,7 @@ const game = {
   best: 0, newBest: false,   // endless only: best banked total on this device, and whether this run set it
   session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, outcome, endedAt }
                              // outcome: null while playing, then 'banked' | 'bust' | 'complete'; endedAt: rounds played
-  roundSeed: 0, roundsPlayed: 0, level: null, diff: null,
+  roundSeed: 0, roundsPlayed: 0, level: null, diff: null, rules: null, stepGone: null,
   state: 'observe',          // observe → reveal → result, round after round, then summary
   clock: 0,                  // seconds since the round started
   summaryAge: 0, totalAge: 9, stripShiftAge: 9,
@@ -377,13 +418,18 @@ function startRound(i) {
   game.session.index = i; game.roundsPlayed++;
   if (i >= STRIP_SLOTS) game.stripShiftAge = 0;                  // the strip slides one slot to the left
   game.roundSeed = roundSeed(game.session.seed, i);
-  game.level = generateLevel(game.roundSeed);
+  game.diff = DIFFICULTY[Math.min(i, DIFFICULTY.length - 1)];
+  const prev = game.rules;
+  game.rules = rulesFor(game.mode, i, game.diff);
+  game.level = generateLevel(game.roundSeed, game.rules.platforms);
   game.state = 'observe'; game.clock = 0;
   game.firstBounce = game.level.base.events[0];
-  game.diff = DIFFICULTY[Math.min(i, DIFFICULTY.length - 1)];
-  game.fadeStartT = game.firstBounce.t + game.diff.seenAfterBounce;
+  game.fadeStartT = fadeStartFor(game.level.base, game.rules.fade, game.diff.seenAfterBounce);
   game.flashedFirst = false;
   game.drag = null; game.reveal = null; game.flashes = []; game.rings = [];
+  // A step leaving the ladder is shown, not silent: the old widest bucket collapses into the new one.
+  game.stepGone = i > 0 && prev && game.rules.minMult > prev.minMult
+    ? { from: stepWidth(BUCKET_STEPS - prev.minMult), to: maxBucketWidth(), mult: prev.minMult, age: 0 } : null;
   game.bucket.left = W / 2 - stepWidth(BUCKET_START_STEP) / 2;
   game.bucket.right = W / 2 + stepWidth(BUCKET_START_STEP) / 2;
 }
@@ -476,6 +522,7 @@ function update(dt) {
   for (const r of game.rings) r.age += dt;
   game.rings = game.rings.filter(r => r.age < RING_T);
   game.totalAge += dt;
+  if (game.stepGone) game.stepGone.age += dt;
   if (game.state === 'summary') { game.summaryAge += dt; return; }
 
   if (game.state === 'observe') {
@@ -540,14 +587,14 @@ function applyDrag(p) {
     if (BODY_DRAG_SETS_WIDTH) {
       const dy = d.startY - p.y;                                   // up = positive = narrower
       const eff = Math.abs(dy) <= BODY_DRAG_DEADZONE ? 0 : dy - Math.sign(dy) * BODY_DRAG_DEADZONE;
-      w = clamp(d.startW - eff * BODY_DRAG_WIDTH_GAIN, BUCKET_MIN, BUCKET_MAX);
+      w = clamp(d.startW - eff * BODY_DRAG_WIDTH_GAIN, BUCKET_MIN, maxBucketWidth());
     }
     const cx = clamp(p.x - d.offset, w / 2 + 2, W - w / 2 - 2);
     b.left = cx - w / 2; b.right = cx + w / 2;
   } else if (d.mode === 'left') {
-    b.left = clamp(p.x, Math.max(2, b.right - BUCKET_MAX), b.right - BUCKET_MIN);
+    b.left = clamp(p.x, Math.max(2, b.right - maxBucketWidth()), b.right - BUCKET_MIN);
   } else {
-    b.right = clamp(p.x, b.left + BUCKET_MIN, Math.min(W - 2, b.left + BUCKET_MAX));
+    b.right = clamp(p.x, b.left + BUCKET_MIN, Math.min(W - 2, b.left + maxBucketWidth()));
   }
 }
 
@@ -669,11 +716,11 @@ function draw() {
   if (game.state === 'summary') { drawSummary(); return; }
 
   // Platforms (drawn fainter in later rounds, never hidden; in endless, later only their endpoints)
-  const ps = platformStyle();
+  const ps = game.rules;
   ctx.globalAlpha = ps.alpha;
   ctx.strokeStyle = C.platform; ctx.fillStyle = C.platform; ctx.lineWidth = 5; ctx.lineCap = 'round';
   for (const p of game.level.platforms) {
-    if (ps.bar) { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
+    if (ps.draw === 'bar') { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
     else for (const [x, y] of [[p.x1, p.y1], [p.x2, p.y2]]) { ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); }
   }
   ctx.globalAlpha = 1;
@@ -701,6 +748,19 @@ function draw() {
     ctx.beginPath(); ctx.arc(hx, RIM_Y, held ? 6 : 4.5, 0, Math.PI * 2); ctx.fill();
   }
   ctx.globalAlpha = 1;
+
+  // A step that just left the ladder: the old widest bucket collapses into the new widest and fades.
+  const g = game.stepGone;
+  if (g && g.age < 1 && game.state === 'observe') {
+    const gw = lerp(g.from, g.to, smooth(g.age / 0.6)), gx = W / 2;
+    ctx.globalAlpha = 0.8 * (1 - smooth((g.age - 0.4) / 0.6));
+    ctx.strokeStyle = C.dim; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(gx - gw / 2, RIM_Y); ctx.lineTo(gx - gw / 2, bottom); ctx.lineTo(gx + gw / 2, bottom); ctx.lineTo(gx + gw / 2, RIM_Y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
+    ctx.fillText(`×${g.mult} gone`, gx, bottom + 16);
+    ctx.globalAlpha = 1;
+  }
 
   // Multiplier above the bucket. Grows as the bucket narrows; becomes the result at the end.
   const m = multiplier();
@@ -891,7 +951,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_PLATFORM_STYLE, platformStyle, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
