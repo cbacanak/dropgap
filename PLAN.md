@@ -403,6 +403,41 @@ zorluğa alışsın, sonra kural değişsin.
 bantların çalıştığı görülsün. Aynı anda girerse ölçülen şey merdiven mi
 kural değişikliği mi bilinmez.
 
+### 2e.3 Merdiven testi ve kontrol noktası (10 Eyl)
+
+**Merdiven testi geçti.** Ölümler 3, 5, 15, 20, 30 civarı — tek bantta
+yığılma yok, uçurum değil. Sebep "yakalayamama", "göremedim" değil.
+Merdiven adil ve çalışıyor.
+
+**Yeni bulgu: sıfırdan başlamak sıkıcı.** Yirmide ölüp bir-on dokuzu
+yeniden oynamak. Canı sıkan şey ölüm değil, kolay başlangıcın tekrarı.
+
+**Su dökme modeli (bölüm bazlı, ıska = aynı bölümü tekrar) reddedildi.**
+O modelde ıskanın maliyeti on beş saniye; kovayı en dara çek, tutana
+kadar tekrar dene — risk sıfır. Oyunun kimliği yanılmanın bedelinde,
+o model bedeli siler. Ayrıca bölüm sayısına, yani içeriğe dönüşür —
+hibrit-casual yolu, bilerek girilmedi.
+
+**Karar: bant kontrol noktası.** Iska koşuyu bitirmez, bandın başına
+döndürür (yirmide ıska → 19). Kaybedilen şey birkaç tur, otuz tur
+değil. Risk kalıyor, tekrar gidiyor. Ulaşılan en yüksek toplam ve best
+korunuyor; koşu oyuncu çıkınca biter.
+
+*Test:* Beş koşu, sıkılma gitti mi? Gittiyse 2e kapanır.
+Gitmediyse sorun tekrar değil **aynılık** — her koşu aynı biçimde
+başlıyor — ve o zaman 2d (ikinci tur tipi) devreye girer.
+
+### Aşama 2 kapanış koşulu
+
+2e kapanınca Aşama 2 biter. **2d ve 2f atlanıyor** — sıkılma kontrol
+noktasıyla gittiyse çeşitliliğe ihtiyaç gösterilmedi; hiçbir test
+"keşke bir kere bakabilsem" demedi. Yerini kazanmayan katman eklenmez;
+bank katmanı bu kuralla çıktı, bu ikisi aynı kuralla girmiyor.
+Gerekirse Aşama 3 sonrası dönülür.
+
+Aşama 3'e kalan: günlük tohum, paylaşım kartı, yayın. Sonra üç-dört
+hafta bekleme. Bütün proje o beklemenin cevabına bağlı.
+
 ### İki mod sorusu — Aşama 3'ten sonra cevaplanacak
 
 Neden iki mod: günlük tek başına "bir daha"yı öldürür, sonsuz onu

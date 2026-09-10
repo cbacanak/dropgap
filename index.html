@@ -99,7 +99,8 @@ const RING_T = 0.7;
 const SESSION_ROUNDS = 5;
 const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
 // Two modes, no menu. The daily five-round session is the default. Endless (?mode=endless) is an
-// open run: no round limit, a miss ends it, the score is the highest total reached before the miss.
+// open run: no round limit; a miss sends the run back to the start of its ladder band (the band
+// checkpoint, PLAN §2e.3), the score is the highest total reached, the run ends when the player leaves.
 // The "take ×N · finish" target went unused in three tests (2c, 2e, 2e with a best score) and is
 // switched off in both modes: the bucket width already asks the same question. The code stays.
 // Difficulty in endless: the last DIFFICULTY row holds from round 6 on, deliberately, so a ceiling
@@ -375,7 +376,8 @@ const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 const game = {
   mode: 'session',           // 'session' | 'endless' (see MODES)
   best: 0, newBest: false,   // endless only: best banked total on this device, and whether this run set it
-  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, outcome, endedAt }
+  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, reached, resume, outcome, endedAt }
+                             // reached: highest total so far; resume: round index the next tap starts after a checkpoint
                              // outcome: null while playing, then 'banked' | 'bust' | 'complete'; endedAt: rounds played
   roundSeed: 0, roundsPlayed: 0, level: null, diff: null, rules: null, stepGone: null,
   state: 'observe',          // observe → reveal → result, round after round, then summary
@@ -412,7 +414,7 @@ function roundSeed(sessionSeed, i) {
 }
 
 function startSession(seed) {
-  game.session = { seed, index: 0, rounds: [], total: 0, outcome: null, endedAt: 0 };
+  game.session = { seed, index: 0, rounds: [], total: 0, reached: 0, resume: null, outcome: null, endedAt: 0 };
   game.totalAge = 9; game.stripShiftAge = 9; game.newBest = false;
   writeSeed(seed);
   startRound(0);
@@ -500,9 +502,20 @@ function bank() {
 }
 function bankPill() { const w = 156, h = 26; return { x: W - 12 - w, y: H - 12 - h, w, h }; }
 function bankLabel() { return `take ×${game.session.total} · ${game.best > 0 ? 'best ' + game.best : 'finish'}`; }
+// Endless (PLAN §2e.3): a miss does not end the run, it sends it back to the first round of its
+// ladder band. The rounds played since then and their points are gone; the highest total reached,
+// and the best, stay. The counter and the strip show the band start from the miss moment on.
+function checkpoint() {
+  const s = game.session, from = ladderRow(s.index + 1).from - 1;   // index of the band's first round
+  s.rounds.length = from;
+  s.total = s.rounds.reduce((t, rd) => t + rd.score, 0);
+  s.index = from;
+  s.resume = from;
+}
 function advance() {
   const s = game.session;
   if (game.state === 'summary') { startSession((s.seed + 1) >>> 0); return; }
+  if (s.resume != null) { const i = s.resume; s.resume = null; startRound(i); return; }   // back at the band start
   if (s.outcome) { openSummary(); return; }                       // the miss already ended the session
   if (s.index + 1 < roundLimit()) startRound(s.index + 1);
   else { s.outcome = 'complete'; openSummary(); }
@@ -522,7 +535,7 @@ function update(dt) {
   game.flashes = game.flashes.filter(f => f.age < 0.3);
   for (const r of game.rings) r.age += dt;
   game.rings = game.rings.filter(r => r.age < RING_T);
-  game.totalAge += dt;
+  game.totalAge += dt; game.stripShiftAge += dt;
   if (game.stepGone) game.stepGone.age += dt;
   if (game.state === 'summary') { game.summaryAge += dt; return; }
 
@@ -548,14 +561,17 @@ function update(dt) {
       if (r.result !== 'miss') game.rings.push({ x: sim.crossX, y: RIM_Y, kind: r.result, age: 0 });
       const s = game.session;                                       // the round lands in the session at the result moment
       s.rounds.push({ mult: r.mult, width: r.width, result: r.result, score: r.score });
-      if (r.result === 'miss') {                                    // the miss ends the session or the run
-        s.outcome = 'bust';
-        if (game.mode === 'session') s.total = 0;                     // session: the total is gone; endless: the score is what was reached
+      if (r.result === 'miss' && game.mode === 'endless') {         // endless: back to the start of the band
+        checkpoint();
+      } else if (r.result === 'miss') {                             // session: the total is gone and the session is over
+        s.outcome = 'bust'; s.total = 0;
+        game.totalAge = 0;
       } else {
         s.total += r.score;
+        s.reached = Math.max(s.reached, s.total);
         if (game.mode === 'endless' && s.total > game.best) { game.best = s.total; game.newBest = true; saveBest(game.best); }
+        game.totalAge = 0;
       }
-      game.totalAge = 0;
     }
     if (r.shown) r.age += dt;
     if (r.shown && r.simT >= sim.endT) game.state = 'result';
@@ -909,11 +925,11 @@ function drawSummary() {
     ctx.globalAlpha = tk;
     ctx.textAlign = 'center'; ctx.fillStyle = C.text;
     ctx.font = `700 ${(56 * (0.9 + 0.1 * tk)).toFixed(1)}px ${FONT}`;
-    ctx.fillText('×' + s.total, W / 2, cy0 + 78);
+    ctx.fillText('×' + (endless ? s.reached : s.total), W / 2, cy0 + 78);
     // How it ended: the same fact the strip shows, in words.
     const how = endless
-      ? (s.outcome === 'banked' ? `banked ×${s.total} · best ${game.best}`
-        : game.newBest ? `new best ×${s.total} in ${s.endedAt} rounds` : `reached ×${s.total} in ${s.endedAt} rounds · best ${game.best}`)
+      ? (s.outcome === 'banked' ? `banked ×${s.reached} · best ${game.best}`
+        : game.newBest ? `new best ×${s.reached} in ${s.endedAt} rounds` : `reached ×${s.reached} in ${s.endedAt} rounds · best ${game.best}`)
       : (s.outcome === 'banked' ? `took it after round ${s.endedAt}` : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds');
     ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
     ctx.fillText(how, W / 2, cy0 + 104);
@@ -945,7 +961,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
