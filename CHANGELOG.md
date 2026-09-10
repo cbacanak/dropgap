@@ -9,6 +9,13 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- 2c closed: the "take ×N · finish" target is removed from the
+  five-round session. With the fifth round banking by itself, stopping
+  early is almost never worth it, so the target went unused, and that
+  was correct play. The session's risk comes from the rule, not the
+  button: continue and miss, and the total is gone. That rule stays,
+  round 1 included. The target returns in 2e as the core of endless
+  mode.
 - Ladder ratio 1.29 → 1.22 (2c finding: the ×1 bucket covered 65% of
   the field and never missed, so "take and finish" was never used).
   ×10 stays at 26; ×1 is now about 156 instead of 260. Seeds produce
@@ -62,6 +69,12 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 - 2026-09-10: 2c opened.
 - 2026-09-10: 2c finding: the wide bucket was a free continue, so the
   take-and-finish target went unused. Ladder ratio lowered to 1.22.
+- 2026-09-10: 2c closed. The target stayed unused after the narrower
+  ladder, and not using it was correct play: five rounds are too short
+  for push-your-luck. Target removed, miss-ends-session rule kept.
+  The plan's 2c diagnosis ("if they never stop, the risk does not
+  hurt") was wrong: the risk hurt, stopping was just unprofitable.
+  2e moved ahead of 2d.
 
 ## Stage 1 — Mechanic test
 
