@@ -9,6 +9,13 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- The bank layer ("take ×N · finish") went unused in three tests: the
+  five-round session (2c), endless (2e), and endless with a best score.
+  Removed in both modes; the code stays behind the mode table. The
+  bucket width already asks the same question. Endless now scores the
+  highest total reached before the miss: the run end reads "reached
+  ×48 · lost at round 12" ("new best" when the run set it), the best
+  is the highest reached, and "best N" sits in the header during a run.
 - 2c closed: the "take ×N · finish" target is removed from the
   five-round session. With the fifth round banking by itself, stopping
   early is almost never worth it, so the target went unused, and that
@@ -93,6 +100,9 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 - 2026-09-10: 2e opened.
 - 2026-09-10: 2e finding: take-and-finish still unused, because a
   banked total had nowhere to go. Local best score added to endless.
+- 2026-09-10: still unused with a best score. Bank layer removed in
+  both modes after three tests; the width already asks the same
+  question. Endless scores the highest total reached before the miss.
 
 ## Stage 1 — Mechanic test
 

@@ -274,16 +274,38 @@ acıtıyordu, durmak sadece kârsızdı.
 var mı (2b), buton işe yarar mı (2c) — ikisi de yalnızca sonsuz modda
 görünür.
 
-**2e — Sonsuz mod: şansını zorla.** Açık uçlu koşu. Her turdan sonra
-"al ve bitir" ya da devam. Iska her şeyi götürür. Tur sınırı yok;
-koşu, oyuncu aldığında veya ıskaladığında biter. Skor = alınan toplam.
-Sıralama yok, paylaşım yok.
-*Kontrol 1:* Oyuncu duruyor mu? Burada durmak gerçekten karar; hâlâ
-hiç durmuyorsa buton kalıcı olarak gider.
-*Kontrol 2:* Uzun koşuda tavan görünüyor mu? Onuncu turdan sonra
-"hepsi aynı" hissi gelirse doğru kaldıraç platform okunurluğu (2b'nin
-bulgusu), sekme süresi değil.
-*Kontrol 3:* 0,55 sn düşüş öncesi vuruş uzun koşuda sıkıyor mu.
+**2e — Sonsuz mod: ne kadar ileri.** Açık uçlu koşu. Iskalayana kadar
+oyna; skor, ıskalamadan önce ulaşılan en yüksek toplam. Yerel en iyi
+skor (`localStorage`), üst bantta görünür. Sıralama yok, paylaşım yok.
+
+*2e durumu (10 Eyl, PR #13, #14, #15): "al ve bitir" kalıcı olarak
+kaldırıldı.*
+Önce şansını zorlama olarak kuruldu (hap + ıska her şeyi götürür).
+Kullanılmadı. Alınan puanın gideceği yer olmadığı teşhisiyle yerel en
+iyi skor eklendi, hapta "best 41" göründü. Yine kullanılmadı — bu
+sefer gerçek testle. Üç testte, iki modda, iki düzeltmeyle sıfır
+kullanım.
+
+**§2.1 kapanış:** Seans seviyesinde devam/dur kararı, bu oyunda bir
+katman değil. Genişlik zaten "ne kadar eminsin" sorusu; buton aynı
+soruyu ikinci kez soruyordu. Bir tasarım iki kez konuşuyorsa biri
+fazladır — oyuncu hangisinin fazla olduğunu üç kez söyledi. Kod
+duruyor, `BANK_OFFERED = false`; bir test kullanıcısı "durmak
+istiyorum" derse tek satırla geri gelir.
+
+Risk katmanı bu oyunda iki şeyden oluşuyor ve ikisi de çalışıyor:
+**kova genişliği** (tur riski) ve **ıska-seansı-bitirir** (seans
+riski). Üçüncüsüne yer yok.
+
+*Süreç dersi:* Bir ara, düzeltme merge edilmeden "yine almadım"
+denildi ve kaldırma kararı test edilmemiş sürüme dayandı. Fark edildi,
+geri çekildi, gerçek testle tekrarlandı. Bundan sonra test raporuna
+tohum numarası yazılır — hangi sürümün oynandığı oradan bellidir.
+
+*Kontrol 2 sonucu — tavan doğrulandı:* Onuncu turdan sonra "hepsi
+aynı" hissi geldi, 2b'nin öngördüğü yerde. Kaldıraç belli: platform
+okunurluğu. Sıradaki PR.
+*Kontrol 3:* 0,55 sn vuruş uzun koşuda sıkmadı; dokunulmuyor.
 
 **2d — İkinci tur tipi (§0.1'den bir tane).** Çeşitlilik testi.
 *Kontrol:* Aynı jest ikinci tipte de doğal mı hissettiriyor.
