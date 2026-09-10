@@ -23,7 +23,8 @@ sekmeyi görüyorsun, sonra top görünmez oluyor. Nereye düşecek?
 
 Oyuncu altta bir **kova** yerleştiriyor: tek jestle hem konumunu hem
 **genişliğini** ayarlıyor — yatay hareket konum, dikey hareket genişlik
-(yukarı = dar). Tutamaç yok, ekranın alt bandına dokunup çekmek yeter.
+(yukarı = dar). Tutamaç yok, ekranın herhangi bir yerine dokunup çekmek
+yeter; sürüklemeden sonra bırakmak düşürür.
 
 - Dar kova = eminim = yüksek puan
 - Geniş kova = emin değilim = düşük puan
@@ -673,13 +674,20 @@ değiştirmeden düzelir.
   ortasına, yarı saydam, topun durduğu bölgenin yakınına. Seans ve koşu
   sonu ortalanmış tek kart: toplam, çubuklar, "tap anywhere." Buton
   yok — bu popup değil, sonuç kartı; "vurgu sonuçta" ile uyumlu.
+  *Bekleyen:* ipucu bazen topun izinin üstüne geliyor; çözüm kaydırmak
+  değil sıralamak — ipucu, iz sönümlendikten yarım saniye sonra
+  belirsin. "Önce bak, sonra devam et" ritmi. Test sonrası.
 - **Üst bant iki katına.** 34 birim ve 7 birimlik çubuk telefonda
   küçüktü. Beş yuva her zaman sığar (seansta beş, sonsuzda son beş),
   büyütmek serbest.
-- **Dokunma alanı alt yarı, tüm ekran değil.** Bırakmak topu
-  düşürdüğü için tüm ekran kazara düşüş demek: oyuncu platformlara
-  bakarken dokunup çekince top varsayılan kovayla gider. Üst yarı
-  "bakma alanı" olarak güvenli kalıyor.
+- **Dokunma alanı tüm ekran, düşürme sürüklemeden sonra.** İlk karar
+  alt yarıydı: bırakmak topu düşürdüğü için tüm ekran kazara düşüş
+  demekti. Ama test kullanıcıları parmağı yukarı koyuyorsa alanı
+  küçük tutmak onları eğitmeye çalışmaktır. Çözüm alanı değil, kuralı
+  değiştirmek: sürükleme her yerden başlar; parmak ölü bölgeyi en az
+  bir kez geçtiyse bırakınca top düşer; hiç hareket etmemiş dokunuş
+  üst yarıda hiçbir şey yapmaz, alt yarıda mevcut kovayla düşürür.
+  Ekranın her yeri kovayı kontrol eder, kazara dokunuş oyunu bozmaz.
 
 Genel çerçeve: sakin ve enstrüman gibi. Simülasyon zaten hareketli,
 arayüz onu bastırmamalı.
