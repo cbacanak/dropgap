@@ -22,7 +22,8 @@ Bir top yukarıdan bırakılıyor, birkaç platformdan sekiyor. Sadece ilk
 sekmeyi görüyorsun, sonra top görünmez oluyor. Nereye düşecek?
 
 Oyuncu altta bir **kova** yerleştiriyor: tek jestle hem konumunu hem
-**genişliğini** ayarlıyor.
+**genişliğini** ayarlıyor — yatay hareket konum, dikey hareket genişlik
+(yukarı = dar). Tutamaç yok, ekranın alt bandına dokunup çekmek yeter.
 
 - Dar kova = eminim = yüksek puan
 - Geniş kova = emin değilim = düşük puan
@@ -145,12 +146,20 @@ süresi, yavaşlama, fizik öğrenilebilirliği, sonuç vurgusu ve iOS Safari
 
 **Plandan sapmalar (kabul edildi, gerekçeleriyle):**
 
-- **Gövde sürüklemesi genişliği de değiştiriyor** (yukarı = dar). Parmak
-  çekilince tur başladığı için "önce taşı, sonra daralt" iki jest
-  gerektirirdi ve ikinciye sıra gelmez. Tek jestte hem konum hem
-  genişlik. Tutamaçlar da çalışıyor. 6 birimlik ölü bölge var; kapatma
-  sabiti `BODY_DRAG_SETS_WIDTH`. Mokuptaki iki-tutamaç modeli bunu
-  görmemişti — uygulama planı mokuptan daha doğru okudu.
+- ~~**Gövde sürüklemesi genişliği de değiştiriyor** (yukarı = dar)~~ →
+  **Jest üçüncü kez değişti, tutamaçlar kalktı (10 Eyl, PR #18).**
+  Merdiven dar oynamaya itince tutamaç vuruş alanı dar kovada gövdeyi
+  kapladı; parmak ortaya konsa bile tek duvar hareket ediyordu. Kullanıcı
+  çözümü: tutamaç yok, yön var. Ekranın alt bandı tek dokunma alanı,
+  hareket göreli (kova parmağa zıplamaz): yatay = konum, dikey = genişlik
+  (yukarı = dar). İkisi aynı anda, her eksende 6 birim ölü bölge.
+  Zihinsel model tek cümle — yatay nerede, dikey ne kadar emin — ve bu,
+  oyunun zaten söylediği şeyin jest hali. Kaybedilen tek şey tek duvarı
+  oynatmak; kimse asimetrik kova kurmuyor. Tutamaçların "boyut
+  değişir" ipucu ilk tur metnine taşındı: "drag sideways to move, up to
+  narrow." Eski jesti öğrenen beş kişiden ikisiyle yeniden kontrol
+  gerekiyor. Jest tarihçesi: mokupta iki tutamaç → uygulamada gövde
+  dikeyi de genişlik → şimdi sadece yön.
 - **Fizik yumuşatıldı:** sekme 0.6, sürtünme 0.75, platform açıları
   6–18°. Sert değerlerle top duvara çarpıyordu; duvar sekmesi gizli
   dördüncü sekme olacağı için üretici duvara çarpan turları kabul
@@ -356,6 +365,18 @@ kuralıyla sığmayabilir; üretici zorlanırsa 4'te kesilir.
 *Test sorusu değişti:* "hepsi aynı mı" değil, **hangi satırda öldün ve
 neden.** Sürekli öldüren bant genişletilir, fark edilmeyen bant
 daraltılır.
+
+*Uygulama notları (PR #17):* 5 platform sığdı — deneme başına başarı
+%3,6, ortalama 29 deneme, en kötü 214, seviye başına 44 ms. Fark
+edilmez; ama 22. turdan sonra tur geçişinde takılma hissedilirse çözüm
+üretim değil önceden üretim (sıradaki tur bir önceki oynanırken
+hazırlanır). 11. satır iki sütun değiştiriyor (güç %45→%100, çizim
+çubuk→nokta) — bilerek öyle: kural sütun saymak için değil, oyuncunun
+tek bir değişiklik algılaması için. 31. turda oyuncu tek şey görüyor,
+çubuklar nokta oldu; noktaların tam güçte olması o değişikliğin gereği,
+silik nokta "göremedim"e en yakın şey. Alt adım kalkınca eski kova
+kesikli çizgiyle yenisine çöküyor, altında "×1 gone" — animasyon zaten
+söylüyorsa yazı gider, oynarken hissedilecek.
 
 ### 2e.2 Gizli kurallar — sonraki tur, merdiven test edildikten sonra
 
