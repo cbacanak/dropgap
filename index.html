@@ -95,6 +95,25 @@ const MODES = {
   endless: { rounds: Infinity, bank: false },
 };
 const STRIP_SLOTS = 5;                   // the strip shows the last five rounds; older ones slide off to the left
+
+// ------------------------------------------- Endless platform style (the ceiling lever)
+// Endless only. How the platforms are drawn changes with the round; the physics, the seeds and the
+// generator do not. Each row applies from its round on. alpha null = the DIFFICULTY row's strength.
+// bar false = no bar, only the two endpoints as small dots: the angle can always be derived, the
+// endpoints never disappear. The first bounce stays fully visible in every round.
+const ENDLESS_PLATFORM_STYLE = [
+  { from: 1,  bar: true,  alpha: null },   // rounds 1–5: as the difficulty table says
+  { from: 6,  bar: true,  alpha: 0.45 },
+  { from: 11, bar: false, alpha: 1.00 },   // endpoints only, full strength
+  { from: 16, bar: false, alpha: 0.60 },   // endpoints at 60%, never less
+];
+function platformStyle() {
+  if (game.mode !== 'endless') return { bar: true, alpha: game.diff.platformAlpha };
+  const round = game.session.index + 1;
+  let row = ENDLESS_PLATFORM_STYLE[0];
+  for (const r of ENDLESS_PLATFORM_STYLE) if (round >= r.from) row = r;
+  return { bar: row.bar, alpha: row.alpha == null ? game.diff.platformAlpha : row.alpha };
+}
 // Endless keeps one number on this device: the best total ever reached. Shown in the header during
 // a run. Just the number; no advice, no warnings.
 const BEST_KEY = 'dropgap.endless.best';
@@ -649,10 +668,14 @@ function draw() {
 
   if (game.state === 'summary') { drawSummary(); return; }
 
-  // Platforms (drawn fainter in later rounds, never hidden)
-  ctx.globalAlpha = game.diff.platformAlpha;
-  ctx.strokeStyle = C.platform; ctx.lineWidth = 5; ctx.lineCap = 'round';
-  for (const p of game.level.platforms) { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
+  // Platforms (drawn fainter in later rounds, never hidden; in endless, later only their endpoints)
+  const ps = platformStyle();
+  ctx.globalAlpha = ps.alpha;
+  ctx.strokeStyle = C.platform; ctx.fillStyle = C.platform; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  for (const p of game.level.platforms) {
+    if (ps.bar) { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
+    else for (const [x, y] of [[p.x1, p.y1], [p.x2, p.y2]]) { ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); }
+  }
   ctx.globalAlpha = 1;
 
   // Trail: the part the player saw stays faint, the revealed part is brighter.
@@ -868,7 +891,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_PLATFORM_STYLE, platformStyle, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
