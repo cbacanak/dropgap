@@ -27,11 +27,13 @@ const BALL_R = 7;
 const START_Y = 24;
 const RIM_Y = 600;                       // bucket rim; the result is decided when the ball centre crosses this line
 const BUCKET_DEPTH = 52;
-const BUCKET_MIN = 26, BUCKET_MAX = 260;  // ×10 (narrowest) … ×1 (widest); nothing wider than ×1
+const BUCKET_MIN = 26;                   // ×10, the narrowest bucket
 const BUCKET_STEPS = 10;                 // width is locked to ten geometric steps, one per multiplier
+const BUCKET_STEP_RATIO = 1.22;          // each step is this much wider than the previous one (2c finding: at 1.29 the wide bucket was a free continue)
+const BUCKET_MAX = BUCKET_MIN * Math.pow(BUCKET_STEP_RATIO, BUCKET_STEPS - 1);   // ×1, the widest; nothing wider (≈156 at 1.22)
 const BUCKET_START_STEP = 6;             // ×4
-function stepWidth(k) { return BUCKET_MIN * Math.pow(BUCKET_MAX / BUCKET_MIN, k / (BUCKET_STEPS - 1)); }
-function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_MAX / BUCKET_MIN) * (BUCKET_STEPS - 1)), 0, BUCKET_STEPS - 1); }
+function stepWidth(k) { return BUCKET_MIN * Math.pow(BUCKET_STEP_RATIO, k); }
+function nearestStep(w) { return clamp(Math.round(Math.log(w / BUCKET_MIN) / Math.log(BUCKET_STEP_RATIO)), 0, BUCKET_STEPS - 1); }
 const BODY_DRAG_SETS_WIDTH = true;       // body drag: sideways = position, up/down = width (up = narrower)
 const BODY_DRAG_WIDTH_GAIN = 1.6;        // width units per vertical unit
 const BODY_DRAG_DEADZONE = 6;            // vertical wobble below this does not change the width

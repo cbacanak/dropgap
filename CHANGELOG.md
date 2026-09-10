@@ -9,6 +9,10 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Ladder ratio 1.29 → 1.22 (2c finding: the ×1 bucket covered 65% of
+  the field and never missed, so "take and finish" was never used).
+  ×10 stays at 26; ×1 is now about 156 instead of 260. Seeds produce
+  the same rounds; only the buckets are narrower.
 - Stage 2a fix, after the session check failed (five rounds did not feel
   like one session): the finished rounds now build up as a strip of five
   slots in the header, one bar per round, length = bucket width, filled =
@@ -56,6 +60,8 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
   ceiling shows in endless mode, the lever is platform legibility, not
   the visible time after the bounce.
 - 2026-09-10: 2c opened.
+- 2026-09-10: 2c finding: the wide bucket was a free continue, so the
+  take-and-finish target went unused. Ladder ratio lowered to 1.22.
 
 ## Stage 1 — Mechanic test
 
