@@ -220,6 +220,26 @@ veri. Hız ve ivme artırmak refleksi zorlar; bilgi azaltmak çıkarımı
 zorlar — ve bu oyun bir çıkarım oyunu.
 *Kontrol:* 5. tur hâlâ adil hissettiriyor mu, yoksa keyfi mi.
 
+*2b durumu (10 Eyl, PR #9): adil, ama hissedilmedi.*
+Tablo (`DIFFICULTY`, tur başına satır): sekme sonrası görünürlük
+0,22→0,06 sn, düşüş öncesi vuruş 0,55→0,35 sn, platform gücü
+%100→%60. Beşinci tur "yanlış tahmin ettim" hissettirdi — adil. Ama
+zorluk hiç hissedilmedi.
+
+**Tasarım gerçeği (bu turdan):** Karar, ilk sekmenin yönü ve platform
+açılarından oluşuyor. Sekme sonrası süre kararda neredeyse rol
+oynamıyor; oyuncu o pencereye bakmıyor. Platformları %60'a soldurmak
+bilgi kaybı değil, hâlâ tam okunuyor. Yani 2b bilgiyi azalttı ama
+kararın beslendiği bilgiyi değil.
+
+**Karar:** Tablo zararsız, kalıyor; körlemesine ayarlanmıyor. Zorluk
+bu oyunda zaten oyuncunun seçtiği şey (kova genişliği) ve tavanın
+gerçekten var olup olmadığı ancak sonsuz modda (2e) görünür. Orada
+tavan görünürse doğru kaldıraç belli: **platform okunurluğu** (açı
+bilgisini azaltmak), sekme süresi değil.
+
+*Dar kova tam/kenar meselesi:* ×8+ hissedilmedi, bekliyor.
+
 **2c — Risk/ödül katmanı (§2.1).** Bir buton. Seans seviyesinde
 devam et / dur kararı.
 *Kontrol:* Oyuncu gerçekten duruyor mu, yoksa hep sonuna kadar mı

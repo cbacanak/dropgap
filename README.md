@@ -15,8 +15,9 @@ without spoiling it.
 
 ## Status
 
-Stage 1 passed the five-person test. Stage 2a (a five-round session
-with a total score) is built.
+Stage 1 passed the five-person test. Stage 2 is in progress: the
+session (2a), the difficulty curve (2b) and the risk layer (2c) are
+built.
 
 Play: https://cbacanak.github.io/dropgap/ — a single `index.html`,
 no build step. Add `?seed=123` to replay a specific session; the
@@ -39,9 +40,10 @@ Two rules matter most:
 
 ## Current stage
 
-**Stage 2a — session.** Five rounds, one total. The rest of Stage 2
-(2b–2f) comes one step at a time, each its own PR, each with its own
-stop test.
+**Stage 2c — risk layer.** After each round: tap for the next one, or
+take the total and finish. Continue and miss, and the total is gone.
+The rest of Stage 2 (2d–2f) comes one step at a time, each its own PR,
+each with its own stop test.
 
 Stage 1's question, "do five people say one more?", was answered yes.
 

@@ -17,6 +17,15 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
+- Stage 2c: risk layer. After each round's result there are two ways
+  out: tap anywhere for the next round, or a small "take ×N · finish"
+  target at the bottom that banks the total and closes the session.
+  Continue and miss, and the total resets to zero and the session ends:
+  the remaining strip slots stay empty and the session result opens at
+  zero. Completing the fifth round takes the total by itself. The
+  session result says how it ended ("took it after round 3", "lost at
+  round 4", "all five rounds"). No expected-value hints, no advice, no
+  warnings.
 - Stage 2b: difficulty curve. Less information per round, same physics.
   Three levers in one table, one row per round: how long the ball stays
   visible after the first bounce (0.22 s in round 1, 0.06 s in round 5),
@@ -36,6 +45,17 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 - Seeded rounds: `?seed=N` reproduces a round; the seed is shown top-left.
 - `README.md` as the project entry point.
 - `CHANGELOG.md` for changes and stage test results.
+
+## Stage 2 — Game loop
+
+- 2026-09-10: 2a passed on the second attempt. The first version did
+  not feel like one session; the strip of finished rounds in the header
+  and the earned points above the bucket fixed it.
+- 2026-09-10: 2b: fair, but not felt. The fifth round reads as "I
+  guessed wrong", not "I could not see". The table stays as is; if a
+  ceiling shows in endless mode, the lever is platform legibility, not
+  the visible time after the bounce.
+- 2026-09-10: 2c opened.
 
 ## Stage 1 — Mechanic test
 
