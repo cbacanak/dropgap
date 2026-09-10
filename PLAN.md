@@ -128,6 +128,49 @@ hiçbir şeyi kurtarmaz.
 Bu testin tamamı 3 günlük iş. Bir hafta kod yazdıktan sonra öğrenmekten
 çok ucuz.
 
+#### Aşama 1 durumu (10 Eyl 2026)
+
+Kod yazıldı, `main`'de, GitHub Pages açık:
+`https://cbacanak.github.io/dropgap/`
+
+**Yapıldı:** Tek HTML, vanilla JS, canvas. Pointer olayları, sabit fizik,
+tohumlu PRNG (`?seed=N`, tohum sol üstte, her turda artıyor). Üç seviyeli
+sonuç; dar kovayla tam isabet büyük, geniş kovayla sessiz. Son yarım
+saniyede %50 yavaşlama. Geri sayım yok. 600 tohum iki kez aynı sonucu
+üretti.
+
+**Canlı kontrol sonuçları (kullanıcı):** Sürükleme hissi, görünürlük
+süresi, yavaşlama, fizik öğrenilebilirliği, sonuç vurgusu ve iOS Safari
+— hepsi geçti. Ayar gerektiren bir şey çıkmadı.
+
+**Plandan sapmalar (kabul edildi, gerekçeleriyle):**
+
+- **Gövde sürüklemesi genişliği de değiştiriyor** (yukarı = dar). Parmak
+  çekilince tur başladığı için "önce taşı, sonra daralt" iki jest
+  gerektirirdi ve ikinciye sıra gelmez. Tek jestte hem konum hem
+  genişlik. Tutamaçlar da çalışıyor. 6 birimlik ölü bölge var; kapatma
+  sabiti `BODY_DRAG_SETS_WIDTH`. Mokuptaki iki-tutamaç modeli bunu
+  görmemişti — uygulama planı mokuptan daha doğru okudu.
+- **Fizik yumuşatıldı:** sekme 0.6, sürtünme 0.75, platform açıları
+  6–18°. Sert değerlerle top duvara çarpıyordu; duvar sekmesi gizli
+  dördüncü sekme olacağı için üretici duvara çarpan turları kabul
+  etmiyor — reddetmek yerine eğimi ters çevirip yumuşatarak onarıyor.
+- **Top hep platformun alçak yarısına düşüyor.** Yüksek yarıda eğim
+  boyunca iki kez sekiyordu.
+- **Tekrar oynatma kaybolma noktasından başlıyor,** görülen kısım soluk
+  iz olarak çiziliyor.
+- **Düşüşten önce 0,55 sn vuruş** — karar öncesi, §8.3'e aykırı değil.
+- Arayüz İngilizce, ilk turda iki satır ipucu, sonuçtan sonra dokunmak
+  yeni tur.
+
+**İzlenecek risk:** Dar açı aralığı + hep alçak yarı = turlar
+birbirine benzeyebilir. İlk testte hissedilmedi ama tavan riski (§8)
+burada yaşıyor. On turdan sonra "hepsi aynı" hissi gelirse Aşama 2b
+öne çekilir. Sonsuz modda 0,55 sn vuruş her turda tekrarlanacak; 2e'de
+kısaltılabilir.
+
+**Kalan:** Beş kişi testi. Sonuç CHANGELOG'a.
+
 ### Aşama 2 — Oyun döngüsü (3–5 gün)
 
 **Sırayla eklenecek, hepsi birden değil.** Her adımdan sonra oyna ve
