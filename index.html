@@ -81,12 +81,20 @@ const FADE_T = 0.28;
 const SLOWMO_WINDOW = 0.5, SLOWMO_MIN = 0.5;   // last half second before the rim runs at half speed
 const RING_T = 0.7;
 
-// -------------------------------------------------------- Session (Stage 2a)
+// ------------------------------------------- Session and modes (Stages 2a, 2c, 2e)
 const SESSION_ROUNDS = 5;
 const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
-const BANK_OFFERED = false;              // "take ×N · finish" is not offered in the five-round session (2c finding: with the
-                                         // fifth round banking by itself, stopping early is almost never worth it). The
-                                         // miss-ends-the-session rule stays. The target returns in 2e as the core of endless mode.
+// Two modes, no menu. The daily five-round session is the default. Endless (?mode=endless) is a
+// push-your-luck run: no round limit, "take ×N · finish" after every round, a miss takes everything.
+// The target is not offered in the session (2c finding: with the fifth round banking by itself,
+// stopping early is almost never worth it); the miss-ends-the-session rule holds in both modes.
+// Difficulty in endless: the last DIFFICULTY row holds from round 6 on, deliberately, so a ceiling
+// in a long run is observed at constant difficulty.
+const MODES = {
+  session: { rounds: SESSION_ROUNDS, bank: false },
+  endless: { rounds: Infinity, bank: true },
+};
+const STRIP_SLOTS = 5;                   // the strip shows the last five rounds; older ones slide off to the left
 const HEADER_H = 34;                     // band above the play field: seed, round, total, and the strip of finished rounds
 const STRIP_SLOT = 46, STRIP_GAP = 6, STRIP_H = 7;   // five slots; a bar at BUCKET_MAX fills a slot
 
@@ -296,12 +304,13 @@ const ctx = canvas.getContext('2d');
 const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 
 const game = {
+  mode: 'session',           // 'session' | 'endless' (see MODES)
   session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, outcome, endedAt }
                              // outcome: null while playing, then 'banked' | 'bust' | 'complete'; endedAt: rounds played
   roundSeed: 0, roundsPlayed: 0, level: null, diff: null,
-  state: 'observe',          // observe → reveal → result, five times, then summary
+  state: 'observe',          // observe → reveal → result, round after round, then summary
   clock: 0,                  // seconds since the round started
-  summaryAge: 0, totalAge: 9,
+  summaryAge: 0, totalAge: 9, stripShiftAge: 9,
   firstBounce: null, fadeStartT: 0, flashedFirst: false,
   bucket: { left: 0, right: 0 },
   drag: null, reveal: null, flashes: [], rings: [],
@@ -312,7 +321,17 @@ function readSeed() {
   if (m) return parseInt(m[1], 10) >>> 0;
   return (Math.random() * 0x7fffffff) >>> 0;
 }
-function writeSeed(seed) { try { history.replaceState(null, '', '?seed=' + seed); } catch (e) { /* file:// */ } }
+function readMode() { return /[?&]mode=endless(?:&|$)/.test(location.search) ? 'endless' : 'session'; }
+function writeSeed(seed) {
+  try { history.replaceState(null, '', '?seed=' + seed + (game.mode === 'endless' ? '&mode=endless' : '')); } catch (e) { /* file:// */ }
+}
+function modeCfg() { return MODES[game.mode]; }
+function roundLimit() { return modeCfg().rounds; }
+// The only way between modes: the small word at the bottom left of the end screen.
+function switchMode() {
+  game.mode = game.mode === 'endless' ? 'session' : 'endless';
+  startSession(game.session.seed);
+}
 
 // One session seed fixes all five rounds: ?seed=N always gives the same five, in the same order.
 function roundSeed(sessionSeed, i) {
@@ -324,13 +343,14 @@ function roundSeed(sessionSeed, i) {
 
 function startSession(seed) {
   game.session = { seed, index: 0, rounds: [], total: 0, outcome: null, endedAt: 0 };
-  game.totalAge = 9;
+  game.totalAge = 9; game.stripShiftAge = 9;
   writeSeed(seed);
   startRound(0);
 }
 
 function startRound(i) {
   game.session.index = i; game.roundsPlayed++;
+  if (i >= STRIP_SLOTS) game.stripShiftAge = 0;                  // the strip slides one slot to the left
   game.roundSeed = roundSeed(game.session.seed, i);
   game.level = generateLevel(game.roundSeed);
   game.state = 'observe'; game.clock = 0;
@@ -398,7 +418,7 @@ function openSummary() {
 }
 function bankAvailable() {
   const s = game.session;
-  return BANK_OFFERED && game.state !== 'summary' && canAdvance() && !s.outcome && s.index + 1 < SESSION_ROUNDS;
+  return modeCfg().bank && game.state !== 'summary' && canAdvance() && !s.outcome && s.index + 1 < roundLimit();
 }
 function bank() {
   if (!bankAvailable()) return;
@@ -410,7 +430,7 @@ function advance() {
   const s = game.session;
   if (game.state === 'summary') { startSession((s.seed + 1) >>> 0); return; }
   if (s.outcome) { openSummary(); return; }                       // the miss already ended the session
-  if (s.index + 1 < SESSION_ROUNDS) startRound(s.index + 1);
+  if (s.index + 1 < roundLimit()) startRound(s.index + 1);
   else { s.outcome = 'complete'; openSummary(); }
 }
 
@@ -509,8 +529,10 @@ canvas.addEventListener('pointerdown', e => {
   e.preventDefault();
   if (game.drag) return;
   if (canAdvance()) {
+    const p = toWorld(e);
+    if (game.state === 'summary' && p.x <= 90 && p.y >= H - 40) { switchMode(); return; }   // the small mode word, bottom left
     if (bankAvailable()) {
-      const p = toWorld(e), b = bankPill();
+      const b = bankPill();
       if (p.x >= b.x - 10 && p.x <= b.x + b.w + 10 && p.y >= b.y - 10 && p.y <= b.y + b.h + 10) { bank(); return; }
     }
     advance(); return;
@@ -695,7 +717,7 @@ function draw() {
     ctx.fillText('let go to drop', W / 2, H - 12);
   } else if (canAdvance()) {
     if (game.session.outcome === 'bust') ctx.fillText('tap to finish', W / 2, H - 12);
-    else if (game.session.index + 1 >= SESSION_ROUNDS) ctx.fillText('tap to finish the session', W / 2, H - 12);
+    else if (game.session.index + 1 >= roundLimit()) ctx.fillText('tap to finish the session', W / 2, H - 12);
     else if (!bankAvailable()) ctx.fillText('tap for the next round', W / 2, H - 12);
     else {
       // Two ways out, side by side, stated plainly: the next round, or take what is there.
@@ -723,14 +745,19 @@ function drawHeader() {
   ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
   ctx.fillText('#' + s.seed, 10, 13);
   ctx.textAlign = 'center'; ctx.fillStyle = C.dim;
-  ctx.fillText(summary ? 'session' : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 13);
+  const endless = game.mode === 'endless';
+  ctx.fillText(summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 13);
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
   ctx.font = `600 ${(14 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
   ctx.fillText('×' + s.total, W - 10, 13);
 
-  const span = SESSION_ROUNDS * STRIP_SLOT + (SESSION_ROUNDS - 1) * STRIP_GAP, y = 19;
-  let x = (W - span) / 2;
-  for (let i = 0; i < SESSION_ROUNDS; i++, x += STRIP_SLOT + STRIP_GAP) {
+  // The strip: the last five rounds. In a long run a new round pushes it one slot to the left.
+  const pitch = STRIP_SLOT + STRIP_GAP, span = STRIP_SLOTS * pitch - STRIP_GAP, y = 19, x0 = (W - span) / 2;
+  const first = stripFirst(), shift = (1 - smooth(game.stripShiftAge / 0.25)) * pitch;
+  ctx.save(); ctx.beginPath(); ctx.rect(x0 - 1, y - 2, span + 2, STRIP_H + 6); ctx.clip();
+  for (let j = shift > 0 ? -1 : 0; j < STRIP_SLOTS; j++) {
+    const i = first + j, x = x0 + j * pitch + shift;
+    if (i < 0) continue;
     const rd = s.rounds[i], current = !summary && i === s.index;
     ctx.strokeStyle = current ? C.dim : C.line; ctx.lineWidth = 1;          // the slot floor; the current round's is brighter
     ctx.beginPath(); ctx.moveTo(x, y + STRIP_H + 2.5); ctx.lineTo(x + STRIP_SLOT, y + STRIP_H + 2.5); ctx.stroke();
@@ -740,6 +767,13 @@ function drawHeader() {
     if (rd.result === 'miss') { ctx.strokeStyle = C.faint; ctx.lineWidth = 1; roundedRect(x + 0.5, y + 0.5, len - 1, STRIP_H - 1, 2); ctx.stroke(); }
     else { ctx.fillStyle = C[rd.result]; roundedRect(x, y, len, STRIP_H, 2); ctx.fill(); }
   }
+  ctx.restore();
+}
+
+// Index of the round shown in the strip's first slot: 0 until the run is longer than the strip.
+function stripFirst() {
+  const s = game.session, last = game.state === 'summary' ? s.rounds.length - 1 : s.index;
+  return Math.max(0, last - (STRIP_SLOTS - 1));
 }
 
 function drawSummary() {
@@ -747,16 +781,18 @@ function drawSummary() {
   ctx.textBaseline = 'alphabetic';
 
   const x0 = 50, top = 305, rowH = 22, step = 46;
-  for (let i = 0; i < SESSION_ROUNDS; i++) {
-    const rd = s.rounds[i], y = top + i * step;
-    if (!rd) {                                                  // a round that was never played: an empty slot
-      ctx.textAlign = 'right'; ctx.fillStyle = C.line; ctx.font = `500 11px ${FONT}`;
+  const endless = game.mode === 'endless', first = endless ? stripFirst() : 0;   // endless: the last five rounds, like the strip
+  for (let j = 0; j < STRIP_SLOTS; j++) {
+    const i = first + j, rd = s.rounds[i], y = top + j * step;
+    if (!rd) {
+      if (endless) continue;                                  // a run has no fixed length: nothing to show as unplayed
+      ctx.textAlign = 'right'; ctx.fillStyle = C.line; ctx.font = `500 11px ${FONT}`;   // a session round never played: an empty slot
       ctx.fillText(String(i + 1), x0 - 12, y + rowH / 2 + 4);
       ctx.strokeStyle = C.line; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x0, y + rowH + 0.5); ctx.lineTo(x0 + 40, y + rowH + 0.5); ctx.stroke();
       continue;
     }
-    const k = smooth((age - 0.1 - i * 0.12) / 0.3);          // bars grow in one after another
+    const k = smooth((age - 0.1 - j * 0.12) / 0.3);          // bars grow in one after another
     if (k <= 0) continue;
     const len = rd.width * k;
     ctx.textAlign = 'right'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
@@ -780,16 +816,19 @@ function drawSummary() {
     ctx.textAlign = 'center'; ctx.fillStyle = C.text;
     ctx.font = `700 ${(56 * (0.9 + 0.1 * tk)).toFixed(1)}px ${FONT}`;
     ctx.fillText('×' + s.total, W / 2, 235);
-    // How the session ended: the same fact the strip shows, in words.
-    const how = s.outcome === 'banked' ? `took it after round ${s.endedAt}`
-      : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds';
+    // How it ended: the same fact the strip shows, in words.
+    const how = endless
+      ? (s.outcome === 'banked' ? `banked ×${s.total} after ${s.endedAt} round${s.endedAt === 1 ? '' : 's'}` : `lost at round ${s.endedAt}`)
+      : (s.outcome === 'banked' ? `took it after round ${s.endedAt}` : s.outcome === 'bust' ? `lost at round ${s.endedAt}` : 'all five rounds');
     ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
     ctx.fillText(how, W / 2, 262);
     ctx.globalAlpha = 1;
   }
   if (age > 1.3) {
     ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
-    ctx.fillText('tap for a new session', W / 2, H - 12);
+    ctx.fillText(endless ? 'tap for a new run' : 'tap for a new session', W / 2, H - 12);
+    ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 12px ${FONT}`;   // the way into the other mode; no menu
+    ctx.fillText(endless ? 'session' : 'endless', 12, H - 12);
   }
 }
 
@@ -804,12 +843,13 @@ function frame(now) {
 }
 
 resize();
+game.mode = readMode();
 startSession(readSeed());
 requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
