@@ -35,13 +35,26 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Added
 
-- Endless ceiling lever: how the platforms are drawn changes with the
-  round, in one table (`ENDLESS_PLATFORM_STYLE`). Rounds 1–5 as the
-  difficulty table says; 6–10 a full bar at 45%; 11–15 no bar, only
-  the two endpoints as small dots at full strength; 16 and on the
-  endpoints at 60%. The endpoints never disappear, so the angle can
-  always be derived; the first bounce stays fully visible. Physics,
-  seeds and the generator are untouched. Endless only.
+- Endless difficulty ladder (PLAN §2e.1), replacing the single-axis
+  `ENDLESS_PLATFORM_STYLE`: one table (`ENDLESS_LADDER`), one row per
+  round band, five columns: platform count (2 to 5), where the ball
+  fades out (just before the second platform, halfway along the path
+  to it, or right after the first bounce; geometry, not seconds), the
+  lowest bucket step still on the ladder (×1, then ×2, then ×3), the
+  platform strength, and the drawing (bar or endpoints). Eleven rows,
+  each changing one column from the previous one; the plan's last row
+  changes two (strength and drawing). A step leaving the ladder is
+  shown: the old widest bucket collapses into the new one with a small
+  "×1 gone" label; a bucket below the floor snaps to the nearest open
+  step. The generator now places 2 to 5 platforms; the session's
+  three-platform layout and its seeds are unchanged, endless seeds
+  differ. The first bounce stays fully visible; endpoints never
+  disappear. Session and `DIFFICULTY` untouched.
+- Endless ceiling lever (superseded by the ladder above): how the
+  platforms are drawn changes with the round, in one table
+  (`ENDLESS_PLATFORM_STYLE`). Rounds 1–5 as the difficulty table says;
+  6–10 a full bar at 45%; 11–15 no bar, only the two endpoints as
+  small dots at full strength; 16 and on the endpoints at 60%.
 - Endless best score, kept on the device in `localStorage` (2e
   finding: a banked total needs somewhere to go, or taking and losing
   feel the same). The target reads "take ×35 · best 41"; the run end
@@ -113,6 +126,9 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 - 2026-09-10: 2e check 2, the ceiling: "all the same" after round ten,
   where 2b predicted it. Lever applied: platform legibility, endless
   only.
+- 2026-09-10: the single-axis lever was too steep ("the bars went too
+  early"). Replaced by the §2e.1 ladder: four axes, one change per
+  band, thirty rounds.
 
 ## Stage 1 — Mechanic test
 

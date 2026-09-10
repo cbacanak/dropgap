@@ -303,9 +303,98 @@ geri çekildi, gerçek testle tekrarlandı. Bundan sonra test raporuna
 tohum numarası yazılır — hangi sürümün oynandığı oradan bellidir.
 
 *Kontrol 2 sonucu — tavan doğrulandı:* Onuncu turdan sonra "hepsi
-aynı" hissi geldi, 2b'nin öngördüğü yerde. Kaldıraç belli: platform
-okunurluğu. Sıradaki PR.
+aynı" hissi geldi, 2b'nin öngördüğü yerde. İlk kaldıraç (PR #16,
+`ENDLESS_PLATFORM_STYLE`: 6–10 %45, 11–15 uç noktalar, 16+ %60)
+uygulandı ama "çubuklar çok erken gitti" — tek eksenli ve fazla dik.
 *Kontrol 3:* 0,55 sn vuruş uzun koşuda sıkmadı; dokunulmuyor.
+
+### 2e.1 Sonsuz mod zorluk merdiveni (kullanıcı tasarımı, 10 Eyl)
+
+2b ve PR #16'daki tek eksenli tablolar çalışmadı. Kullanıcı dört ekseni
+ve sıralama ilkesini buldu; ikisi yeni:
+
+- **Platform sayısı.** Daha çok platform = daha çok gizli sekme. Adil,
+  hepsi görünüyor. Hiç denenmemişti.
+- **Alt kova adımının yükselmesi.** ×1 kalkar, sonra ×2. Saklanacak
+  geniş kova kalmaz. 2c/2e'de üç kez çarpılan "geniş kova = bedava
+  devam" sorununun doğrudan ve dürüst çözümü.
+- **Topun sönme yeri, saniye değil geometri.** "İkinci platforma yakın"
+  → "yolun yarısı" → "ilk sekmeden hemen sonra." 2b'nin neden hiçbir şey
+  hissettirmediğini bu açıklıyor: 0,22 ile 0,06 sn ikisi de "sadece ilk
+  sekme." Anlamlı fark, ikinci sekmeyi görmek ile görmemek.
+- **Platform gücü ve çizimi** (önceki tablo, artık daha geç ve yumuşak).
+
+**Sıralama ilkesi: her bantta tek şey değişir.** Oyuncu bir şeyin
+değiştiğini fark eder ama iki şey birden değişmediği için "ne oldu"
+demez. Eğri uçurum değil, merdiven.
+
+`ENDLESS_LADDER` — tur bandı başına satır, sonsuz mod, tek yer:
+
+| Tur | Platform | Top sönme yeri | Alt adım | Güç | Çizim |
+|---|---|---|---|---|---|
+| 1–3 | 2 | 2. platforma yakın | ×1 | %100 | çubuk |
+| 4–6 | **3** | 2. platforma yakın | ×1 | %100 | çubuk |
+| 7–9 | 3 | **yolun yarısı** | ×1 | %100 | çubuk |
+| 10–12 | **4** | yolun yarısı | ×1 | %100 | çubuk |
+| 13–15 | 4 | yolun yarısı | **×2** | %100 | çubuk |
+| 16–18 | 4 | yolun yarısı | ×2 | **%65** | çubuk |
+| 19–21 | 4 | **ilk sekmeden hemen sonra** | ×2 | %65 | çubuk |
+| 22–24 | **5** | hemen sonra | ×2 | %65 | çubuk |
+| 25–27 | 5 | hemen sonra | **×3** | %65 | çubuk |
+| 28–30 | 5 | hemen sonra | ×3 | **%45** | çubuk |
+| 31+ | 5 | hemen sonra | ×3 | %100 | **uç noktalar** |
+
+Otuz turluk merdiven. Başlangıç mevcut sonsuzdan kolay (2 platform,
+ikinci sekme görünür); çoğu oyuncu son satırları görmez — uzun kuyruk
+sonsuz modun doğası, rekor bu yüzden anlamlı. İlk sekme her satırda
+tam görünür. Alt adım yükselince merdivenden adım görünür şekilde
+kalkar, sessiz değil. Varsayılan ×4 değişmez.
+
+*Teknik risk:* 5 platform, 400 birimde duvara çarpmama + alçak yarı
+kuralıyla sığmayabilir; üretici zorlanırsa 4'te kesilir.
+
+*Test sorusu değişti:* "hepsi aynı mı" değil, **hangi satırda öldün ve
+neden.** Sürekli öldüren bant genişletilir, fark edilmeyen bant
+daraltılır.
+
+### 2e.2 Gizli kurallar — sonraki tur, merdiven test edildikten sonra
+
+Üreticinin iki sadeleştirmesi var, ikisi de oyuncuya büyük ipucu ve
+ikisi de öğrenilebilir örüntü:
+
+- **Temas garantisi.** Top her platforma değiyor; "n platform = n
+  sekme." Çıkarımın yarısını hazır veriyor.
+- **Alçak yarı.** Top hep eğimin aşağı tarafına düşüyor.
+
+İkisi de sona doğru gevşetilebilir. Temas garantisini kaldırmak eldeki
+en güçlü kaldıraç — soru "hangi açıdan sekecek"ten "sekecek mi"ye
+dönüyor. **Adalet şartı:** es geçme, ilk sekmenin yönünden geometrik
+olarak okunabilir olmalı; rastgele es geçme yazı turadır ve oyunu
+öldürür. Üretici es geçmeyi belirgin üretmeli.
+
+Yeri: merdivenin en sonu, uç noktalardan sonra, altıncı sütun olarak
+("temas garantisi: evet/hayır", 34+ hayır). Diğer kaldıraçlar bilgiyi
+azaltıyor, bu bilginin anlamını değiştiriyor — oyuncu önce görsel
+zorluğa alışsın, sonra kural değişsin.
+
+**Şimdi eklenmiyor.** Önce otuz satırlık merdiven oynansın; hangi
+bantların çalıştığı görülsün. Aynı anda girerse ölçülen şey merdiven mi
+kural değişikliği mi bilinmez.
+
+### İki mod sorusu — Aşama 3'ten sonra cevaplanacak
+
+Neden iki mod: günlük tek başına "bir daha"yı öldürür, sonsuz onu
+günlüğün değerini bozmadan karşılar. Wordle'ın sonsuzu yoktu, "Wordle
+Unlimited" klonları o yüzden çıktı. İki sayfa değil — tek sayfa, mod
+parametresi, seans sonundaki "endless" kelimesi.
+
+Ama karmaşıklık vergisi gerçek: kurallar ayrıştı (seansta ıska
+sıfırlar, sonsuzda ulaşılan kalır). Ve günlük mod Aşama 3'e kadar
+gerçekten günlük değil — o gelene kadar seans, sonsuzdan sadece tur
+sınırıyla ayrılıyor.
+
+**Açık soru:** Aşama 3'ten sonra hangi modda oynanıyor? Biri terk
+edilirse gider.
 
 **2d — İkinci tur tipi (§0.1'den bir tane).** Çeşitlilik testi.
 *Kontrol:* Aynı jest ikinci tipte de doğal mı hissettiriyor.
