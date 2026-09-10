@@ -66,6 +66,10 @@ const FADE_T = 0.28;
 const SLOWMO_WINDOW = 0.5, SLOWMO_MIN = 0.5;   // last half second before the rim runs at half speed
 const RING_T = 0.7;
 
+// -------------------------------------------------------- Session (Stage 2a)
+const SESSION_ROUNDS = 5;
+const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
+
 // --------------------------------------------------------------- Colours
 // Colour is used for exactly one job: telling the three outcomes apart (PLAN §7).
 const C = {
@@ -272,9 +276,11 @@ const ctx = canvas.getContext('2d');
 const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 
 const game = {
-  seed: 0, round: 0, level: null,
-  state: 'observe',          // observe → reveal → result
+  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total }
+  roundSeed: 0, roundsPlayed: 0, level: null,
+  state: 'observe',          // observe → reveal → result, five times, then summary
   clock: 0,                  // seconds since the round started
+  summaryAge: 0, totalAge: 9,
   firstBounce: null, fadeStartT: 0, flashedFirst: false,
   bucket: { left: 0, right: 0 },
   drag: null, reveal: null, flashes: [], rings: [],
@@ -287,9 +293,25 @@ function readSeed() {
 }
 function writeSeed(seed) { try { history.replaceState(null, '', '?seed=' + seed); } catch (e) { /* file:// */ } }
 
-function startRound(seed) {
-  game.seed = seed; game.round++;
-  game.level = generateLevel(seed);
+// One session seed fixes all five rounds: ?seed=N always gives the same five, in the same order.
+function roundSeed(sessionSeed, i) {
+  let x = (sessionSeed + Math.imul(i + 1, 0x9E3779B9)) >>> 0;
+  x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B) >>> 0;
+  x = Math.imul(x ^ (x >>> 13), 0xC2B2AE35) >>> 0;
+  return (x ^ (x >>> 16)) >>> 0;
+}
+
+function startSession(seed) {
+  game.session = { seed, index: 0, rounds: [], total: 0 };
+  game.totalAge = 9;
+  writeSeed(seed);
+  startRound(0);
+}
+
+function startRound(i) {
+  game.session.index = i; game.roundsPlayed++;
+  game.roundSeed = roundSeed(game.session.seed, i);
+  game.level = generateLevel(game.roundSeed);
   game.state = 'observe'; game.clock = 0;
   game.firstBounce = game.level.base.events[0];
   game.fadeStartT = game.firstBounce.t + SEEN_AFTER_BOUNCE;
@@ -297,7 +319,6 @@ function startRound(seed) {
   game.drag = null; game.reveal = null; game.flashes = []; game.rings = [];
   game.bucket.left = W / 2 - stepWidth(BUCKET_START_STEP) / 2;
   game.bucket.right = W / 2 + stepWidth(BUCKET_START_STEP) / 2;
-  writeSeed(seed);
 }
 
 function bucketWidth() { return game.bucket.right - game.bucket.left; }
@@ -332,11 +353,23 @@ function commit() {
   const result = classify(sim);
   const targetT = sim.nearT != null ? sim.nearT : sim.endT;
   const resultT = sim.crossed ? sim.crossT : Math.min(sim.endT, targetT + 0.5);
-  game.reveal = { sim, startT, simT: startT, prevT: startT, targetT, resultT, result, shown: false, age: 0 };
+  game.reveal = { sim, startT, simT: startT, prevT: startT, targetT, resultT, result, shown: false, age: 0, mult: multiplier(), width: bucketWidth() };
   game.state = 'reveal';
 }
 
-function nextRound() { startRound((game.seed + 1) >>> 0); }
+// Graded scoring (PLAN §0): dead centre earns the multiplier, the edge earns part of it, a miss nothing.
+function scoreFor(result, mult) {
+  if (result === 'center') return mult;
+  if (result === 'edge') return Math.ceil(mult * EDGE_SCORE);
+  return 0;
+}
+
+// After a round: the next round, or the session result after the last one. After the result: a new session.
+function advance() {
+  if (game.state === 'summary') { startSession((game.session.seed + 1) >>> 0); return; }
+  if (game.session.index + 1 < SESSION_ROUNDS) startRound(game.session.index + 1);
+  else { game.state = 'summary'; game.summaryAge = 0; game.drag = null; }
+}
 
 function timeScale(t, target) {
   const a = target - SLOWMO_WINDOW;
@@ -352,6 +385,8 @@ function update(dt) {
   game.flashes = game.flashes.filter(f => f.age < 0.3);
   for (const r of game.rings) r.age += dt;
   game.rings = game.rings.filter(r => r.age < RING_T);
+  game.totalAge += dt;
+  if (game.state === 'summary') { game.summaryAge += dt; return; }
 
   if (game.state === 'observe') {
     game.clock += dt;
@@ -373,6 +408,9 @@ function update(dt) {
     if (!r.shown && r.simT >= r.resultT) {
       r.shown = true; r.age = 0;
       if (r.result !== 'miss') game.rings.push({ x: sim.crossX, y: RIM_Y, kind: r.result, age: 0 });
+      const s = game.session, score = scoreFor(r.result, r.mult);   // the round lands in the session at the result moment
+      s.rounds.push({ mult: r.mult, width: r.width, result: r.result, score });
+      s.total += score; game.totalAge = 0;
     }
     if (r.shown) r.age += dt;
     if (r.shown && r.simT >= sim.endT) game.state = 'result';
@@ -416,13 +454,16 @@ function applyDrag(p) {
   }
 }
 
-function canAdvance() { return game.state === 'result' || (game.state === 'reveal' && game.reveal.shown && game.reveal.age > 0.6); }
+function canAdvance() {
+  if (game.state === 'summary') return game.summaryAge > 0.6;
+  return game.state === 'result' || (game.state === 'reveal' && game.reveal.shown && game.reveal.age > 0.6);
+}
 
 canvas.addEventListener('pointerdown', e => {
   if (e.button != null && e.button !== 0) return;
   e.preventDefault();
   if (game.drag) return;
-  if (canAdvance()) { if (game.reveal.age > 0.4) nextRound(); return; }
+  if (canAdvance()) { advance(); return; }
   if (game.state !== 'observe') return;
   const p = toWorld(e);
   const mode = hitTestBucket(p);
@@ -456,7 +497,7 @@ canvas.addEventListener('pointercancel', e => {
 });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 window.addEventListener('keydown', e => {
-  if ((e.key === ' ' || e.key === 'Enter') && canAdvance() && game.reveal.age > 0.4) { e.preventDefault(); nextRound(); }
+  if ((e.key === ' ' || e.key === 'Enter') && canAdvance()) { e.preventDefault(); advance(); }
 });
 
 // ---------------------------------------------------------------- Render
@@ -497,6 +538,11 @@ function drawTrail(sim, t0, t1, alpha, width) {
 }
 
 function pop(age) { return age < 0.15 ? smooth(age / 0.15) : 1 - 0.7 * smooth((age - 0.15) / 0.45); }
+function bump(age) { return age < 0.12 ? smooth(age / 0.12) : 1 - smooth((age - 0.12) / 0.4); }
+function roundedRect(x, y, w, h, r) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, Math.max(w, 0), h, r); else ctx.rect(x, y, Math.max(w, 0), h);
+}
 
 function draw() {
   const { cw, ch, dpr, scale, ox, oy } = view;
@@ -511,6 +557,8 @@ function draw() {
   ctx.moveTo(0.5, 0); ctx.lineTo(0.5, H); ctx.moveTo(W - 0.5, 0); ctx.lineTo(W - 0.5, H);
   ctx.moveTo(0, H - 0.5); ctx.lineTo(W, H - 0.5);
   ctx.stroke();
+
+  if (game.state === 'summary') { drawSummary(); return; }
 
   // Platforms
   ctx.strokeStyle = C.platform; ctx.lineWidth = 5; ctx.lineCap = 'round';
@@ -583,15 +631,70 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  // Text: seed (so a round can be reported and replayed) and a one-time hint.
+  // Top line: session seed (so a session can be reported and replayed), round counter, running total.
+  ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
-  ctx.fillText('#' + game.seed, 10, 18);
+  ctx.fillText('#' + game.session.seed, 10, 18);
+  ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
+  ctx.fillText(`round ${game.session.index + 1} / ${SESSION_ROUNDS}`, W / 2, 18);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.text;
+  ctx.font = `600 ${(14 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
+  ctx.fillText('×' + game.session.total, W - 10, 18);
+
+  // Hints: once, at the very first round; then after each round.
   ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
-  if (game.state === 'observe' && game.round === 1 && !game.drag) {
+  if (game.state === 'observe' && game.roundsPlayed === 1 && !game.drag) {
     ctx.fillText('drag the bucket to place it · drag up to narrow it', W / 2, H - 30);
     ctx.fillText('let go to drop', W / 2, H - 12);
-  } else if (canAdvance() && r.age > 0.4) {
-    ctx.fillText('tap to drop again', W / 2, H - 12);
+  } else if (canAdvance()) {
+    ctx.fillText(game.session.index + 1 < SESSION_ROUNDS ? 'tap for the next round' : 'tap to finish the session', W / 2, H - 12);
+  }
+}
+
+// Session result: the total and one bar per round. Bar length is the bucket width the player
+// chose, a filled bar is a catch (its colour says dead centre or edge), an empty outline is a
+// miss. This is the future share card (PLAN §4); for now it only lives on screen.
+function drawSummary() {
+  const s = game.session, age = game.summaryAge;
+  ctx.textBaseline = 'alphabetic';
+  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
+  ctx.fillText('#' + s.seed, 10, 18);
+  ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 12px ${FONT}`;
+  ctx.fillText('session', W / 2, 18);
+
+  const x0 = 50, top = 305, rowH = 22, step = 46;
+  for (let i = 0; i < SESSION_ROUNDS; i++) {
+    const rd = s.rounds[i];
+    if (!rd) continue;
+    const k = smooth((age - 0.1 - i * 0.12) / 0.3);          // bars grow in one after another
+    if (k <= 0) continue;
+    const y = top + i * step, len = rd.width * k;
+    ctx.textAlign = 'right'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
+    ctx.fillText(String(i + 1), x0 - 12, y + rowH / 2 + 4);
+    if (rd.result === 'miss') {
+      ctx.strokeStyle = C.faint; ctx.lineWidth = 1.5;
+      roundedRect(x0, y, len, rowH, 4); ctx.stroke();
+    } else {
+      ctx.fillStyle = C[rd.result];
+      roundedRect(x0, y, len, rowH, 4); ctx.fill();
+    }
+    if (k >= 1) {
+      ctx.textAlign = 'right'; ctx.font = `600 14px ${FONT}`;
+      ctx.fillStyle = rd.result === 'miss' ? C.faint : C[rd.result];
+      ctx.fillText(rd.score ? '×' + rd.score : '0', W - 30, y + rowH / 2 + 5);
+    }
+  }
+  const tk = smooth((age - 0.8) / 0.3);                        // the total lands last
+  if (tk > 0) {
+    ctx.globalAlpha = tk;
+    ctx.textAlign = 'center'; ctx.fillStyle = C.text;
+    ctx.font = `700 ${(56 * (0.9 + 0.1 * tk)).toFixed(1)}px ${FONT}`;
+    ctx.fillText('×' + s.total, W / 2, 235);
+    ctx.globalAlpha = 1;
+  }
+  if (age > 1.3) {
+    ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
+    ctx.fillText('tap for a new session', W / 2, H - 12);
   }
 }
 
@@ -606,12 +709,12 @@ function frame(now) {
 }
 
 resize();
-startRound(readSeed());
+startSession(readSeed());
 requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, generateLevel, simulate, classify, commit, nextRound, startRound, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, generateLevel, simulate, classify, commit, advance, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
