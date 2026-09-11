@@ -376,7 +376,8 @@ const view = { scale: 1, ox: 0, oy: 0, dpr: 1, cw: 0, ch: 0 };
 const game = {
   mode: 'session',           // 'session' | 'endless' (see MODES)
   best: 0, newBest: false,   // endless only: best banked total on this device, and whether this run set it
-  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, reached, resume, outcome, endedAt }
+  session: null,             // { seed, index, rounds: [{ mult, width, result, score }], total, reached, resume, outcome, endedAt, attempts }
+                             // attempts: endless only, how many times each round index has been started
                              // reached: highest total so far; resume: round index the next tap starts after a checkpoint
                              // outcome: null while playing, then 'banked' | 'bust' | 'complete'; endedAt: rounds played
   roundSeed: 0, roundsPlayed: 0, level: null, diff: null, rules: null, stepGone: null,
@@ -407,15 +408,18 @@ function switchMode() {
 }
 
 // One session seed fixes all five rounds: ?seed=N always gives the same five, in the same order.
-function roundSeed(sessionSeed, i) {
-  let x = (sessionSeed + Math.imul(i + 1, 0x9E3779B9)) >>> 0;
+// In endless the round seed also carries how many times that round has been started (the band
+// checkpoint replays rounds): the first attempt is the plain seed, so a URL seed stays
+// reproducible, and a replayed round never comes back with the same trajectory to memorise.
+function roundSeed(sessionSeed, i, attempt = 0) {
+  let x = (sessionSeed + Math.imul(i + 1, 0x9E3779B9) + Math.imul(attempt, 0x85EBCA77)) >>> 0;
   x = Math.imul(x ^ (x >>> 16), 0x85EBCA6B) >>> 0;
   x = Math.imul(x ^ (x >>> 13), 0xC2B2AE35) >>> 0;
   return (x ^ (x >>> 16)) >>> 0;
 }
 
 function startSession(seed) {
-  game.session = { seed, index: 0, rounds: [], total: 0, reached: 0, resume: null, outcome: null, endedAt: 0 };
+  game.session = { seed, index: 0, rounds: [], total: 0, reached: 0, resume: null, outcome: null, endedAt: 0, attempts: {} };
   game.totalAge = 9; game.stripShiftAge = 9; game.newBest = false;
   writeSeed(seed);
   startRound(0);
@@ -424,7 +428,9 @@ function startSession(seed) {
 function startRound(i) {
   game.session.index = i; game.roundsPlayed++;
   if (i >= STRIP_SLOTS) game.stripShiftAge = 0;                  // the strip slides one slot to the left
-  game.roundSeed = roundSeed(game.session.seed, i);
+  const s = game.session;
+  const attempt = game.mode === 'endless' ? (s.attempts[i] = (s.attempts[i] || 0) + 1) - 1 : 0;   // session: always the plain seed
+  game.roundSeed = roundSeed(s.seed, i, attempt);
   game.diff = DIFFICULTY[Math.min(i, DIFFICULTY.length - 1)];
   const prev = game.rules;
   game.rules = rulesFor(game.mode, i, game.diff);
