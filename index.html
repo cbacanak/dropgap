@@ -107,7 +107,7 @@ const RING_T = 0.7;
 const SESSION_ROUNDS = 5;
 const EDGE_SCORE = 0.5;                  // an edge catch scores this fraction of the multiplier, rounded up
 // Two modes, no menu. The daily five-round session is the default. Endless (?mode=endless) is an
-// open run: no round limit; a miss sends the run back to the start of its ladder band (the band
+// open run: no round limit; a miss sends the run back to the start of its ladder step (the
 // checkpoint, PLAN §2e.3), the score is the highest total reached, the run ends when the player leaves.
 // The "take ×N · finish" target went unused in three tests (2c, 2e, 2e with a best score) and is
 // switched off in both modes: the bucket width already asks the same question. The code stays.
@@ -120,43 +120,79 @@ const MODES = {
 const STRIP_SLOTS = 5;                   // the strip shows the last five rounds; older ones slide off to the left
 
 // ------------------------------------------- Endless platform style (the ceiling lever)
-// ------------------------------------------- Endless ladder (PLAN §2e.1)
-// Endless only. One row per round band, five columns; each row changes one column from the row
-// before it, so the player notices that something changed but never asks "what happened".
+// ------------------------------------------- Endless ladder v3 (PLAN §2e.5)
+// Endless only. Two nested sawtooths. The outer tooth is the world (platform count), the middle
+// one the bars' dash level, the inner one where the ball fades out. Within a row the fade walks
+// its sequence, ROUNDS_PER_STEP rounds per step, and the checkpoint (§2e.3) is the step. A new
+// dash level restarts the fade sequence; a new world adds a platform and returns the bars to
+// full. One row per (world, dash level); a row lasts steps × ROUNDS_PER_STEP rounds; adding a
+// world is adding rows. This table is the only place the ladder lives.
 //   platforms  how many platforms the ball bounces off (the generator places 2–5)
-//   fade       where the ball fades out, from the round's geometry, never from a clock:
-//              'nearNext' gone just before the second platform, 'half' from halfway along the
-//              path between the first bounce and the second platform, 'after' right after the
-//              first bounce (the session's value)
+//   dash       how the bars are drawn: 'full', 'light' (long dash, small gap), 'dashed' (even),
+//              'more' (short dash, wide gap), 'dots' (sparse dots). The endpoints always stay.
 //   minMult    the lowest bucket step still on the ladder; the steps below it are gone
-//   alpha      how strongly the platforms are drawn
-//   draw       'bar', or 'dots' (endpoints only: they never disappear, the angle can always be read)
-// The first bounce is fully visible in every row. Physics and the generator's rules do not change;
-// the platform count is part of the round, so endless seeds differ from before this ladder.
+const ROUNDS_PER_STEP = 2;
 const ENDLESS_LADDER = [
-  { from: 1,  platforms: 2, fade: 'nearNext', minMult: 1, alpha: 1.00, draw: 'bar' },
-  { from: 4,  platforms: 3, fade: 'nearNext', minMult: 1, alpha: 1.00, draw: 'bar' },
-  { from: 7,  platforms: 3, fade: 'half',     minMult: 1, alpha: 1.00, draw: 'bar' },
-  { from: 10, platforms: 4, fade: 'half',     minMult: 1, alpha: 1.00, draw: 'bar' },
-  { from: 13, platforms: 4, fade: 'half',     minMult: 2, alpha: 1.00, draw: 'bar' },
-  { from: 16, platforms: 4, fade: 'half',     minMult: 2, alpha: 0.65, draw: 'bar' },
-  { from: 19, platforms: 4, fade: 'after',    minMult: 2, alpha: 0.65, draw: 'bar' },
-  { from: 22, platforms: 5, fade: 'after',    minMult: 2, alpha: 0.65, draw: 'bar' },
-  { from: 25, platforms: 5, fade: 'after',    minMult: 3, alpha: 0.65, draw: 'bar' },
-  { from: 28, platforms: 5, fade: 'after',    minMult: 3, alpha: 0.45, draw: 'bar' },
-  { from: 31, platforms: 5, fade: 'after',    minMult: 3, alpha: 1.00, draw: 'dots' },   // as written in the plan: alpha and draw both change here
+  { world: 1, platforms: 2, dash: 'full',   minMult: 1 },   // rounds 1–8
+  { world: 2, platforms: 3, dash: 'full',   minMult: 1 },   // 9–20
+  { world: 2, platforms: 3, dash: 'light',  minMult: 1 },   // 21–32
+  { world: 2, platforms: 3, dash: 'dashed', minMult: 1 },   // 33–44
+  { world: 3, platforms: 4, dash: 'full',   minMult: 2 },   // 45–56
+  { world: 3, platforms: 4, dash: 'light',  minMult: 2 },   // 57–68
+  { world: 3, platforms: 4, dash: 'dashed', minMult: 2 },   // 69–80
+  { world: 3, platforms: 4, dash: 'more',   minMult: 2 },   // 81–92
+  { world: 4, platforms: 5, dash: 'full',   minMult: 2 },   // 93–104
+  { world: 4, platforms: 5, dash: 'light',  minMult: 3 },   // 105–116
+  { world: 4, platforms: 5, dash: 'dashed', minMult: 3 },   // 117–128
+  { world: 4, platforms: 5, dash: 'more',   minMult: 3 },   // 129–140
+  { world: 4, platforms: 5, dash: 'dots',   minMult: 3 },   // 141–152; after the table the last step holds (world 5+ is §2e.6)
 ];
-function ladderRow(round) { let row = ENDLESS_LADDER[0]; for (const r of ENDLESS_LADDER) if (round >= r.from) row = r; return row; }
-// The rules for a round: the ladder row in endless; the session's fixed shape otherwise.
-function rulesFor(mode, index, diff) {
-  if (mode === 'endless') return ladderRow(index + 1);
-  return { platforms: 3, fade: 'after', minMult: 1, alpha: diff.platformAlpha, draw: 'bar' };
+// Where the ball is gone, as a code, from the round's geometry, never from a clock:
+//   after<k>  right after bounce k (bounce k is seen, then the ball fades)
+//   half<k>   gone by halfway along the path from bounce k to the next platform
+//   near<k>   gone just before platform k
+// One sequence per platform count, from most seen to least; the ceiling is "near the third
+// platform", so with four or five platforms the later bounces are never shown.
+const FADE_SEQ = {
+  2: ['after2', 'near2', 'half1', 'after1'],
+  3: ['near3', 'half2', 'after2', 'near2', 'half1', 'after1'],   // three or more platforms
+};
+const DASH = { full: [], light: [18, 6], dashed: [10, 10], more: [5, 12], dots: [0.01, 16] };
+function fadeSeqFor(platforms) { return FADE_SEQ[Math.min(platforms, 3)]; }
+function rowRounds(row) { return fadeSeqFor(row.platforms).length * ROUNDS_PER_STEP; }
+// The step a round sits in: its row, its fade, and the round the step starts at (the checkpoint).
+function stepFor(round) {
+  let from = 1;
+  for (let i = 0; i < ENDLESS_LADDER.length; i++) {
+    const row = ENDLESS_LADDER[i], len = rowRounds(row);
+    if (round < from + len || i === ENDLESS_LADDER.length - 1) {
+      const seq = fadeSeqFor(row.platforms);
+      const k = Math.min(Math.floor((round - from) / ROUNDS_PER_STEP), seq.length - 1);
+      return { row, rowFrom: from, step: k, fade: seq[k], from: from + k * ROUNDS_PER_STEP };
+    }
+    from += len;
+  }
 }
-// Where the ball fades out, from the round's geometry; never earlier than the first bounce itself.
+// The rules for a round: the ladder step in endless; the session's fixed shape otherwise.
+function rulesFor(mode, index, diff) {
+  if (mode === 'endless') {
+    const s = stepFor(index + 1);
+    return { from: s.from, world: s.row.world, platforms: s.row.platforms, dash: s.row.dash, fade: s.fade, minMult: s.row.minMult, alpha: 1 };
+  }
+  return { platforms: 3, fade: 'after1', minMult: 1, alpha: diff.platformAlpha, dash: 'full' };
+}
+// Where the ball fades out, from the round's geometry. The bounce the code promises stays visible
+// for a moment at least; the next platform, or the rim, is never reached while the ball shows.
 function fadeStartFor(sim, fade, seenAfterBounce) {
-  const t1 = sim.events[0].t, t2 = sim.events[1].t;
-  const t = fade === 'nearNext' ? t2 - FADE_T - 0.04 : fade === 'half' ? halfwayT(sim, t1, t2) : t1 + seenAfterBounce;
-  return Math.max(t, t1 + 0.06);
+  const kind = fade.replace(/\d+$/, ''), k = parseInt(fade.slice(kind.length), 10);
+  const ev = sim.events, tB = i => ev[i - 1].t;                             // time of bounce i
+  const nextT = i => i < ev.length ? tB(i + 1) : sim.crossT - 0.25;          // after bounce i: the next platform, or the rim
+  let t;
+  if (kind === 'after') t = Math.min(tB(k) + seenAfterBounce, nextT(k) - FADE_T - 0.04);
+  else if (kind === 'half') t = halfwayT(sim, tB(k), nextT(k)) - FADE_T;                // gone by the halfway point
+  else t = tB(k) - FADE_T - 0.04;                                           // 'near' platform k
+  const seen = kind === 'near' ? k - 1 : k;                                 // the last bounce this code shows
+  return Math.max(t, tB(Math.max(1, seen)) + 0.06);
 }
 function halfwayT(sim, t0, t1) {   // the time at which the ball has covered half the path length between t0 and t1
   const i0 = Math.round(t0 / DT), i1 = Math.round(t1 / DT);
@@ -524,7 +560,7 @@ function bankLabel() { return `take ×${game.session.total} · ${game.best > 0 ?
 // ladder band. The rounds played since then and their points are gone; the highest total reached,
 // and the best, stay. The counter and the strip show the band start from the miss moment on.
 function checkpoint() {
-  const s = game.session, from = ladderRow(s.index + 1).from - 1;   // index of the band's first round
+  const s = game.session, from = stepFor(s.index + 1).from - 1;     // index of the step's first round
   s.rounds.length = from;
   s.total = s.rounds.reduce((t, rd) => t + rd.score, 0);
   s.index = from;
@@ -738,15 +774,28 @@ function draw() {
 
   if (game.state === 'summary') { drawSummary(); return; }
 
-  // Platforms (drawn fainter in later rounds, never hidden; in endless, later only their endpoints)
+  // Platforms: fainter in later session rounds, never hidden; in endless, dashed by the ladder's
+  // level. The endpoints always stay, so the angle can always be read.
   const ps = game.rules;
   ctx.globalAlpha = ps.alpha;
   ctx.strokeStyle = C.platform; ctx.fillStyle = C.platform; ctx.lineWidth = 5; ctx.lineCap = 'round';
-  for (const p of game.level.platforms) {
-    if (ps.draw === 'bar') { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
-    else for (const [x, y] of [[p.x1, p.y1], [p.x2, p.y2]]) { ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill(); }
-  }
+  ctx.setLineDash(DASH[ps.dash] || []);
+  for (const p of game.level.platforms) { ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke(); }
+  ctx.setLineDash([]);
+  if (ps.dash !== 'full') for (const p of game.level.platforms) for (const [x, y] of [[p.x1, p.y1], [p.x2, p.y2]]) { ctx.beginPath(); ctx.arc(x, y, 2.5, 0, Math.PI * 2); ctx.fill(); }
   ctx.globalAlpha = 1;
+
+  // The dashed trail (PLAN §2e.4): once the ball is gone, the path the player saw stays as a faint
+  // dashed line while the bucket is placed. It reminds, it does not inform; and it makes the
+  // ladder's fade steps visible. Endless only; gone when the result plays.
+  if (game.state === 'observe' && game.mode === 'endless') {
+    const t = observeT();
+    if (t > game.fadeStartT) {
+      ctx.setLineDash([5, 7]);
+      drawTrail(game.level.base, 0, game.fadeStartT + FADE_T, 0.22 * clamp((t - game.fadeStartT) / FADE_T, 0, 1), 2);
+      ctx.setLineDash([]);
+    }
+  }
 
   // Trail: the part the player saw stays faint, the revealed part is brighter.
   if (game.state !== 'observe') {
@@ -987,7 +1036,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, ladderRow, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
