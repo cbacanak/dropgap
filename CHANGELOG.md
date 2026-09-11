@@ -9,6 +9,13 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Header, three zones, both modes: left the mode word (small, faint,
+  as before), centre the round number big ("round 87", 20px, text
+  colour), right the total with the best under it; the strip below as
+  before. Space between the zones. The seed and the ladder position
+  were noise for the player: they show only with `?debug=1`, which
+  the URL keeps across sessions. When the daily mode comes, the day
+  number joins the left zone.
 - Endless header: next to the round number, small and faint, where the
   run is on the ladder: world, dash level and fade step, as in
   "w3 · dashed · 5/8". The session header is unchanged.
@@ -241,6 +248,8 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
   "could not see it". New finding: starting over from round one is
   boring. Band checkpoint added; the water-pouring model (miss = replay
   the same section) rejected. Test: five runs, is the boredom gone?
+- 2026-09-11: Stage 2 closed. 2d and 2f skipped by design. Ladder v3
+  in place, untuned — no death distribution collected.
 
 ## Stage 1 — Mechanic test
 
