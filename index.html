@@ -69,6 +69,14 @@ function bandsFor(n) {
 }
 const PLAT_LEN = [80, 120];
 const PLAT_ANGLE = [6, 18];              // degrees (magnitude); sign is random, then repaired away from walls
+// The first bounce has to carry information (PLAN §2e.4): the ball drops anywhere across the
+// width, and the first platform ranges from nearly flat to steeper than the rest, so the first
+// bounce goes left, right, or nearly straight up. A tilt toward a wall is repaired as before.
+const DROP_X = [40, W - 40];              // the ball's drop x, spread over the whole width
+const FIRST_ANGLE = [5, 22];             // the first platform's tilt when it leans (magnitude); the others keep PLAT_ANGLE
+// One first platform in five is nearly flat: the ball goes almost straight up. It is aimed near
+// the downhill end so it clears the platform on the way down (still the downhill half).
+const FLAT_FIRST = { share: 0.2, angle: [3, 5], hitU: [0.12, 0.2] };   // exit ≈ 2.4× the tilt: 7–12° from vertical
 const HIT_U = [0.2, 0.45];               // aim point along the platform, measured from the downhill end (uphill hits skip)
 const HIT_U_OK = [0.10, 0.90];           // accepted contact range after simulation (no edge clips)
 const LANDING_X = [40, W - 40];
@@ -314,14 +322,17 @@ function probeAfter(x0, platforms, i, n, bands) {
 }
 
 function tryGenerate(rnd, n) {
-  const x0 = lerp(110, W - 110, rnd());
+  const x0 = lerp(DROP_X[0], DROP_X[1], rnd());
   const bands = bandsFor(n), platforms = [];
   let base = null;
   for (let i = 0; i < n; i++) {
     const cy = lerp(bands[i][0], bands[i][1], rnd());
     const len = lerp(PLAT_LEN[0], PLAT_LEN[1], rnd());
-    const mag = lerp(PLAT_ANGLE[0], PLAT_ANGLE[1], rnd());
-    const u = lerp(HIT_U[0], HIT_U[1], rnd());
+    const flat = i === 0 && rnd() < FLAT_FIRST.share;
+    const angle = flat ? FLAT_FIRST.angle : i === 0 ? FIRST_ANGLE : PLAT_ANGLE;
+    const mag = lerp(angle[0], angle[1], rnd());
+    const hitU = flat ? FLAT_FIRST.hitU : HIT_U;
+    const u = lerp(hitU[0], hitU[1], rnd());
     const sign = rnd() < 0.5 ? -1 : 1;
     let xh = x0;
     if (i > 0) {

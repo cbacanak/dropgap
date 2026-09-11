@@ -9,6 +9,18 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- The first bounce carries information again (PLAN §2e.4, finding 2).
+  The ball's drop x now spans the whole width (40 to 360 instead of 110
+  to 290), so the first platform sits anywhere across the field. The
+  first platform's tilt runs from 5° to 22° instead of 6° to 18°, and
+  one first platform in five is nearly flat (3° to 5°, aimed near its
+  downhill end so the ball clears it coming down): the first bounce goes
+  left, right, or nearly straight up. The other platforms, the no-wall
+  and downhill-half rules, and the physics are unchanged. Session seeds
+  change (accepted). Measured over 400 seeds with three platforms: left
+  40%, straight (within 12° of vertical) 24%, right 37%; drop x 10th to
+  90th percentile 81 to 317. Five-platform levels take a little longer
+  to generate (about 60 ms, worst seen 234 attempts).
 - Closed a rule gap in the endless checkpoint: a replayed round came
   back with the same trajectory, so the landing spot could be memorised
   and taken with the narrowest bucket. The round seed now comes from
