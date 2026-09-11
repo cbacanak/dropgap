@@ -9,6 +9,13 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Closed a rule gap in the endless checkpoint: a replayed round came
+  back with the same trajectory, so the landing spot could be memorised
+  and taken with the narrowest bucket. The round seed now comes from
+  three things: the run seed, the round number, and how many times that
+  round has been started. The first attempt is the plain seed, so a URL
+  seed reproduces the same run; a round is never seen twice. The session
+  is untouched.
 - The mode word ("endless" in the session, "session" in endless) moves
   from the end card to the header, next to the seed, small, always
   visible in both modes; a tap switches to the other mode. With the
