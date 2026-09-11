@@ -9,6 +9,14 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- First external test, three fixes, both modes. One: for a first-time
+  player the very first round starts with the widest bucket and does
+  not drop until it has been narrowed at least one step; "drag up to
+  narrow" sits just above the bucket and goes when it is narrowed.
+  Two: the moment the bucket opens (the ball gone, 30% to 100%) it
+  gives a small upward kick, 0.2 s; no other sign. Three: every round
+  of the first visit starts at ×2 instead of ×4. One flag on the
+  device, written at the first drop; after that visit, never again.
 - Header, three zones, both modes: left the mode word (small, faint,
   as before), centre the round number big ("round 87", 20px, text
   colour), right the total with the best under it; the strip below as
@@ -250,6 +258,9 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
   the same section) rejected. Test: five runs, is the boredom gone?
 - 2026-09-11: Stage 2 closed. 2d and 2f skipped by design. Ladder v3
   in place, untuned — no death distribution collected.
+- 2026-09-11: first external test. Three fixes: narrowing is the first
+  lesson (widest bucket, no drop until narrowed), the bucket's opening
+  gets a kick, and the first visit starts at ×2.
 
 ## Stage 1 — Mechanic test
 

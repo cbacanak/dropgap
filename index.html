@@ -207,6 +207,18 @@ function fadeStartFor(sim, fade, seenAfterBounce) {
 // Endless keeps one number on this device: the best total ever reached. Shown in the header during
 // a run. Just the number; no advice, no warnings.
 const BEST_KEY = 'dropgap.endless.best';
+// First external test: a first-time player. Kept on the device as one flag, written at the first
+// drop. Until then the very first round starts with the widest bucket and does not drop until it
+// has been narrowed at least one step, with "drag up to narrow" just above the bucket; and every
+// round of that first visit starts at ×2 instead of ×4. After that visit, never again.
+const FIRST_KEY = 'dropgap.played';
+function loadFirstTime() { try { return !localStorage.getItem(FIRST_KEY); } catch (e) { return false; } }
+function savePlayed() { try { localStorage.setItem(FIRST_KEY, '1'); } catch (e) { /* private mode, blocked storage */ } }
+function startStep() {
+  if (game.firstTime && game.roundsPlayed === 1) return maxStepIndex();              // the widest: narrowing is the lesson
+  return Math.min(game.firstTime ? BUCKET_STEPS - 2 : BUCKET_START_STEP, maxStepIndex());   // ×2 on the first visit, ×4 after
+}
+function mustNarrow() { return game.firstTime && game.roundsPlayed === 1 && nearestStep(bucketWidth()) >= maxStepIndex(); }
 function loadBest() { try { return Math.max(0, parseInt(localStorage.getItem(BEST_KEY), 10) || 0); } catch (e) { return 0; } }
 function saveBest(n) { try { localStorage.setItem(BEST_KEY, String(n)); } catch (e) { /* private mode, blocked storage */ } }
 const HEADER_H = 68;                     // band above the play field: seed, round, total, and the strip of finished rounds (doubled, PLAN §7.1)
@@ -437,6 +449,7 @@ const game = {
   drag: null, reveal: null, flashes: [], rings: [],
   modeWord: { x0: 0, x1: 0 },   // where the header's mode word was drawn this frame, for the tap
   debug: false,              // ?debug=1: the seed and the ladder position show in the header
+  firstTime: false,          // no drop ever made on this device (FIRST_KEY); read once at load
 };
 
 function readSeed() {
@@ -493,8 +506,8 @@ function startRound(i) {
   // A step leaving the ladder is shown, not silent: the old widest bucket collapses into the new one.
   game.stepGone = i > 0 && prev && game.rules.minMult > prev.minMult
     ? { from: stepWidth(BUCKET_STEPS - prev.minMult), to: maxBucketWidth(), mult: prev.minMult, age: 0 } : null;
-  game.bucket.left = W / 2 - stepWidth(BUCKET_START_STEP) / 2;
-  game.bucket.right = W / 2 + stepWidth(BUCKET_START_STEP) / 2;
+  game.bucket.left = W / 2 - stepWidth(startStep()) / 2;
+  game.bucket.right = W / 2 + stepWidth(startStep()) / 2;
 }
 
 function bucketWidth() { return game.bucket.right - game.bucket.left; }
@@ -660,6 +673,12 @@ function applyDrag(p) {
 // The bucket is locked while the ball can still be seen, in both modes: no touch lands until the
 // fade has finished and the ball is gone. Locked, the bucket is drawn faint; that is the only sign.
 function bucketLocked() { return game.state === 'observe' && observeT() < game.fadeStartT + FADE_T; }
+// The moment the bucket opens: a small upward kick, 0.2 s, up and back. The only sign besides the alpha.
+function bucketKick() {
+  if (game.state !== 'observe') return 0;
+  const k = (observeT() - (game.fadeStartT + FADE_T)) / 0.2;
+  return k >= 0 && k < 1 ? -5 * Math.sin(k * Math.PI) : 0;
+}
 
 function canAdvance() {
   if (game.state === 'summary') return game.summaryAge > 0.6;
@@ -706,6 +725,8 @@ canvas.addEventListener('pointerup', e => {
   canvas.style.cursor = 'default';
   if (!d.moved && !tapDrops(d.startY)) return;                           // a still touch in the top half: nothing happens
   snapBucket();
+  if (mustNarrow()) return;                                              // first-time player, first round: narrow first
+  if (game.firstTime) savePlayed();                                      // the first drop: the flag is written, this visit stays "first"
   commit();
 });
 canvas.addEventListener('pointercancel', e => {
@@ -815,12 +836,18 @@ function draw() {
   const b = game.bucket, bottom = RIM_Y + BUCKET_DEPTH, w = bucketWidth(), cx = bucketCx();
   const active = game.state === 'observe';
   ctx.globalAlpha = active ? (bucketLocked() ? 0.3 : 1) : 0.75;      // faint while locked: the ball is still to be watched
+  ctx.save(); ctx.translate(0, bucketKick());                          // the opening kick
   ctx.fillStyle = 'rgba(255,255,255,0.035)';
   ctx.fillRect(b.left, RIM_Y, w, BUCKET_DEPTH);
   ctx.strokeStyle = C.bucket; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
   ctx.beginPath(); ctx.moveTo(b.left, RIM_Y); ctx.lineTo(b.left, bottom); ctx.lineTo(b.right, bottom); ctx.lineTo(b.right, RIM_Y); ctx.stroke();
   ctx.strokeStyle = C.handle; ctx.lineWidth = 4;                       // the centre half of the floor: "dead centre" zone
   ctx.beginPath(); ctx.moveTo(cx - w / 4, bottom); ctx.lineTo(cx + w / 4, bottom); ctx.stroke();
+  ctx.restore();
+  if (mustNarrow()) {                                                  // first-time player, first round: the one lesson, just above the bucket
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
+    ctx.fillText('drag up to narrow', cx, RIM_Y - 48);
+  }
   ctx.globalAlpha = 1;
 
   // A step that just left the ladder: the old widest bucket collapses into the new widest and fades.
@@ -1052,12 +1079,13 @@ resize();
 game.mode = readMode();
 game.debug = readDebug();
 game.best = loadBest();
+game.firstTime = loadFirstTime();
 startSession(readSeed());
 requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, FADE_FRACTION, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, bucketLocked, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, FADE_FRACTION, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, bucketLocked, bucketKick, FIRST_KEY, mustNarrow, startStep, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
