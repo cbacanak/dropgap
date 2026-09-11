@@ -9,6 +9,9 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Endless header: next to the round number, small and faint, where the
+  run is on the ladder: world, dash level and fade step, as in
+  "w3 · dashed · 5/8". The session header is unchanged.
 - Two more fade steps on the 1–2 segment: the ball can also be gone a
   quarter and three quarters of the way along it. Two platforms now
   have six fade steps (after the 2nd bounce, near the 2nd platform,

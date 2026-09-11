@@ -183,7 +183,7 @@ function stepFor(round) {
 function rulesFor(mode, index, diff) {
   if (mode === 'endless') {
     const s = stepFor(index + 1);
-    return { from: s.from, world: s.row.world, platforms: s.row.platforms, dash: s.row.dash, fade: s.fade, minMult: s.row.minMult, alpha: 1 };
+    return { from: s.from, world: s.row.world, platforms: s.row.platforms, dash: s.row.dash, fade: s.fade, minMult: s.row.minMult, alpha: 1, step: s.step + 1, steps: fadeSeqFor(s.row.platforms).length };
   }
   return { platforms: 3, fade: 'after1', minMult: 1, alpha: diff.platformAlpha, dash: 'full' };
 }
@@ -925,7 +925,16 @@ function drawHeader() {
   ctx.fillText(word, wordX, 25);
   game.modeWord = { x0: wordX, x1: wordX + ctx.measureText(word).width };
   ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 14px ${FONT}`;
-  ctx.fillText(summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 25);
+  if (endless && !summary) {
+    // The round, and next to it, small and faint, where the run is on the ladder: world, dash level, fade step.
+    const round = `round ${s.index + 1}`, where = `w${game.rules.world} · ${game.rules.dash} · ${game.rules.step}/${game.rules.steps}`;
+    const w1 = ctx.measureText(round).width; ctx.font = `500 11px ${FONT}`;
+    const w2 = ctx.measureText(where).width, x = W / 2 - (w1 + 8 + w2) / 2;
+    ctx.textAlign = 'left'; ctx.font = `500 14px ${FONT}`; ctx.fillText(round, x, 25);
+    ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`; ctx.fillText(where, x + w1 + 8, 25);
+  } else {
+    ctx.fillText(summary ? game.mode : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 25);
+  }
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
   ctx.font = `600 ${(20 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
   ctx.fillText('×' + s.total, W - 10, 26);
