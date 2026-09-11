@@ -427,6 +427,110 @@ korunuyor; koşu oyuncu çıkınca biter.
 Gitmediyse sorun tekrar değil **aynılık** — her koşu aynı biçimde
 başlıyor — ve o zaman 2d (ikinci tur tipi) devreye girer.
 
+### 2e.4 Kontrol noktası testi ve dört bulgu (11 Eyl)
+
+Kontrol noktası (PR #22) sıkılmayı çözdü — "1. round'a geri düşme
+güzel." Ama dört bulgu çıkardı:
+
+1. **Kural açığı: kontrol noktası + deterministik tohum = ezber.**
+   Yirmide ıskala, on dokuza dön, aynı tur aynı yörüngeyle gelir; düşüş
+   yerini gördün, ×10 çek, al. Su dökme modelinde korkulan şey arka
+   kapıdan girdi. *Düzeltme:* tur tohumu (koşu tohumu, tur, o turun
+   deneme sayısı) üçlüsünden türer; URL tohumu tekrarlanabilir kalır
+   ama aynı tur iki kez görülmez.
+2. **İlk sekme hep aynı yerde.** Top başlangıç x'i ve ilk platform dar
+   aralıkta değiştiği için ilk sekme bilgi taşımıyor — oyuncu ona
+   bakmayı bırakıyor. *Düzeltme:* üretici düşüş noktasını ve ilk
+   platformu bütün genişliğe dağıtır, sekme yönü gerçekten değişir.
+3. **Kesikli iz.** Görülen yol, top kaybolduktan sonra kesikli çizgi
+   olarak kalır. Yeni bilgi vermez, hatırlatır — ama merdivenin sönme
+   adımlarını görünür kılar: çizgi adım adım kısalır, yeni dünyada tam
+   geri gelir. Oyuncu yapıyı anlatılmadan anlar.
+4. **Merdiven fazla dik ve bantlar kısa.** → §2e.5.
+
+*Sıra:* açık düzeltmesi (kural), ilk sekme (üretici), sonra iz +
+merdiven v3 birlikte.
+
+### 2e.5 Merdiven v3 — iki iç içe testere (kullanıcı tasarımı)
+
+§2e.1'deki düz merdivenin yerine. Dış dişli platform sayısı, orta
+dişli kesik seviyesi, iç dişli topun sönmesi. Her dünyada kesik
+seviyesi tırmanır; her kesik seviyesinde top sönmesi baştan iner. Yeni
+dünya: bir platform daha, çubuklar tama döner.
+
+**Neden testere:** her yeni platform sayısı tam bilgiyle tanıtılıp
+sonra sıkıştırılıyor — adil giriş. Sıfırlanma anı nefes veriyor ama
+kolaylaşma değil, çünkü aynı anda platform ekleniyor. Kesikli izle
+birleşince dünyanın içindeki düşüş görünür.
+
+**Sönme tavanı 3. platforma yakın.** 4–5 platformda daha görünür olmak
+saçma; 3 civarında kısıtlandı.
+
+**Sönme dizileri:**
+- 2 platform: 2. sekmeden sonra → 2.'ye yakın → 1–2 ortası → 1.'den
+  hemen sonra (4)
+- 3+ platform: 3.'ye yakın → 2–3 ortası → 2. sekmeden sonra → 2.'ye
+  yakın → 1–2 ortası → 1.'den hemen sonra (6)
+
+**Kesik türleri:** tam, hafif kesikli (uzun çizgi, küçük boşluk),
+kesikli (eşit), daha kesikli (kısa çizgi, geniş boşluk), seyrek
+noktalar. "Kaybolmaya yakın" ve "uç noktalar" **saklandı** — oyun
+bitmiş hissi verir, sonraki dünyalara yer kalmaz.
+
+`ENDLESS_LADDER` — adım başına 2 tur, kontrol noktası adım başı:
+
+| Dünya | Plat. | Çubuk | Sönme | Adım | Tur | En geniş |
+|---|---|---|---|---|---|---|
+| 1 | 2 | tam | 4'lük | 4 | 1–8 | ×1 |
+| 2 | 3 | tam | 6'lık | 6 | 9–20 | ×1 |
+| 2 | 3 | hafif kesikli | 6'lık | 6 | 21–32 | ×1 |
+| 2 | 3 | kesikli | 6'lık | 6 | 33–44 | ×1 |
+| 3 | 4 | tam | 6'lık | 6 | 45–56 | ×2 |
+| 3 | 4 | hafif kesikli | 6'lık | 6 | 57–68 | ×2 |
+| 3 | 4 | kesikli | 6'lık | 6 | 69–80 | ×2 |
+| 3 | 4 | daha kesikli | 6'lık | 6 | 81–92 | ×2 |
+| 4 | 5 | tam | 6'lık | 6 | 93–104 | ×2 |
+| 4 | 5 | hafif kesikli | 6'lık | 6 | 105–116 | ×3 |
+| 4 | 5 | kesikli | 6'lık | 6 | 117–128 | ×3 |
+| 4 | 5 | daha kesikli | 6'lık | 6 | 129–140 | ×3 |
+| 4 | 5 | seyrek noktalar | 6'lık | 6 | 141–152 | ×3 |
+
+Dünya 1 tanıtım, tek kesik seviyesi. Kesik seviyesi her dünyada bir
+artıyor. En geniş kova tek yönlü: Dünya 3'te ×1, Dünya 4'ün ikinci
+seviyesinde ×2 gidiyor. 152 tur, sonra Dünya 5+.
+
+*Risk:* her dünyanın ilk yarısı bir öncekinin tekrarı gibi
+hissedebilir. Oynayınca görülür.
+
+*Test:* hangi dünyada, hangi kesik seviyesinde, hangi sönme adımında
+öldün. Dağılım merdivenin haritası.
+
+### 2e.6 Gelecek dünyalar — kesin eklenecek, sırayla
+
+Yapının değeri bu: dünya = tek yeni kaldıraç, tam netlikle tanıtılıp
+sıkıştırılır. Tablo veri, dünya eklemek satır eklemek. **Kural:** yeni
+dünya, birileri sona ulaşınca eklenir; best skor verisi 153'e ulaşan
+var mı gösterir.
+
+Oyunun ilkeleriyle uyumlu olanlar — prosedürel, tek jest, bilgi
+azaltan ama refleks istemeyen — sırayla:
+
+1. **Temas garantisi kalkıyor** (§2e.2). Top bir platformu es
+   geçebilir. Adalet şartı: es geçme ilk sekme yönünden okunabilir
+   olmalı.
+2. **Alçak yarı kalkıyor** (§2e.2). Top platformun yukarı tarafına da
+   düşebilir, eğim boyunca iki kez sekebilir.
+3. **Top ağırlığı boyuttan belli.** Her turda sekme katsayısı farklı
+   ama boyut söylüyor: büyük top az seker. Fizik değişmiyor, okunacak
+   değişken ekleniyor.
+4. **Platformlar başta görünüp kayboluyor.** Tur başında bir saniye
+   tam, sonra uç noktalar. Hafıza dünyası.
+5. **Saklanan kesik türleri:** kaybolmaya yakın, sadece uç noktalar.
+6. **Alt kova adımı yükselmeye devam:** ×4, ×5.
+
+Bilerek dışarıda: hareketli platform (zamanlama, refleks) ve rüzgar
+(sabit ve görünür olsa adil ama "kaosa yaklaştırma" çizgisi).
+
 ### Aşama 2 kapanış koşulu
 
 2e kapanınca Aşama 2 biter. **2d ve 2f atlanıyor** — sıkılma kontrol
