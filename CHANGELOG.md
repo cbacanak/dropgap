@@ -9,6 +9,18 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Two more fade steps on the 1–2 segment: the ball can also be gone a
+  quarter and three quarters of the way along it. Two platforms now
+  have six fade steps (after the 2nd bounce, near the 2nd platform,
+  three quarters, half, a quarter, right after the 1st bounce), three
+  or more have eight (near the 3rd, halfway to it, after the 2nd,
+  then the same five). The ceiling stays near the third platform. The
+  quarter points are measured on the part of the hop that "right after
+  the first bounce" does not already show (the bounce plus the 0.28 s
+  fade), so every step is distinct and in order on every hop; the
+  halfway step now follows the same rule. Rows last steps × 2 rounds:
+  1–12, 13–28, 29–44, 45–60, 61–76, 77–92, 93–108, 109–124, 125–140,
+  141–156, 157–172, 173–188, 189–204. The session is untouched.
 - Bucket lock, both modes: while the ball can be seen, and while it
   fades, a touch does nothing. Once the ball is gone the bucket opens.
   Locked, the bucket is drawn faint; when it opens it returns to
