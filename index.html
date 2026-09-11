@@ -436,6 +436,7 @@ const game = {
   bucket: { left: 0, right: 0 },
   drag: null, reveal: null, flashes: [], rings: [],
   modeWord: { x0: 0, x1: 0 },   // where the header's mode word was drawn this frame, for the tap
+  debug: false,              // ?debug=1: the seed and the ladder position show in the header
 };
 
 function readSeed() {
@@ -444,8 +445,9 @@ function readSeed() {
   return (Math.random() * 0x7fffffff) >>> 0;
 }
 function readMode() { return /[?&]mode=endless(?:&|$)/.test(location.search) ? 'endless' : 'session'; }
+function readDebug() { return /[?&]debug=1(?:&|$)/.test(location.search); }   // ?debug=1: the seed and the ladder position in the header
 function writeSeed(seed) {
-  try { history.replaceState(null, '', '?seed=' + seed + (game.mode === 'endless' ? '&mode=endless' : '')); } catch (e) { /* file:// */ }
+  try { history.replaceState(null, '', '?seed=' + seed + (game.mode === 'endless' ? '&mode=endless' : '') + (game.debug ? '&debug=1' : '')); } catch (e) { /* file:// */ }
 }
 function modeCfg() { return MODES[game.mode]; }
 function roundLimit() { return modeCfg().rounds; }
@@ -913,28 +915,32 @@ function draw() {
 // Header: session seed (so a session can be reported and replayed), round counter, running
 // total, and the strip: five slots, one bar per finished round, so the session takes shape
 // while it is played. Bar length is the bucket width, filled = caught, outline = miss.
+// Header, three zones (PLAN, Stage 2 close): left the mode word, centre the round number, big,
+// right the total with the best under it. The seed and the ladder position are recording tools,
+// not for the player: they show only with ?debug=1. The daily day number will join the left zone.
 function drawHeader() {
-  const s = game.session, summary = game.state === 'summary';
+  const s = game.session, summary = game.state === 'summary', endless = game.mode === 'endless';
   ctx.textBaseline = 'alphabetic';
-  ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 14px ${FONT}`;
-  ctx.fillText('#' + s.seed, 10, 25);
-  const endless = game.mode === 'endless';
-  const wordX = 10 + ctx.measureText('#' + s.seed).width + 10;                // the way into the other mode, small, always there
-  ctx.fillStyle = C.dim; ctx.font = `500 11px ${FONT}`;
-  const word = endless ? 'session' : 'endless';
-  ctx.fillText(word, wordX, 25);
-  game.modeWord = { x0: wordX, x1: wordX + ctx.measureText(word).width };
-  ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 14px ${FONT}`;
-  if (endless && !summary) {
-    // The round, and next to it, small and faint, where the run is on the ladder: world, dash level, fade step.
-    const round = `round ${s.index + 1}`, where = `w${game.rules.world} · ${game.rules.dash} · ${game.rules.step}/${game.rules.steps}`;
-    const w1 = ctx.measureText(round).width; ctx.font = `500 11px ${FONT}`;
-    const w2 = ctx.measureText(where).width, x = W / 2 - (w1 + 8 + w2) / 2;
-    ctx.textAlign = 'left'; ctx.font = `500 14px ${FONT}`; ctx.fillText(round, x, 25);
-    ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`; ctx.fillText(where, x + w1 + 8, 25);
-  } else {
-    ctx.fillText(summary ? game.mode : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 25);
+  // Left: (debug: the seed, then) the way into the other mode, small and faint
+  let x = 10;
+  if (game.debug) {
+    ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 14px ${FONT}`;
+    ctx.fillText('#' + s.seed, x, 25); x += ctx.measureText('#' + s.seed).width + 10;
   }
+  ctx.textAlign = 'left'; ctx.fillStyle = C.dim; ctx.font = `500 11px ${FONT}`;
+  const word = endless ? 'session' : 'endless';
+  ctx.fillText(word, x, 25);
+  game.modeWord = { x0: x, x1: x + ctx.measureText(word).width };
+  // Centre: the round, big; in the summary the mode's name
+  ctx.textAlign = 'center'; ctx.fillStyle = C.text; ctx.font = `600 20px ${FONT}`;
+  const round = summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`;
+  ctx.fillText(round, W / 2, 26);
+  if (game.debug && endless && !summary) {                                 // where the run is on the ladder: world, dash level, fade step
+    const where = `w${game.rules.world} · ${game.rules.dash} · ${game.rules.step}/${game.rules.steps}`;
+    ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
+    ctx.fillText(where, W / 2 + ctx.measureText(round).width / 2 + 10, 26);
+  }
+  // Right: the total, and under it the best
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
   ctx.font = `600 ${(20 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
   ctx.fillText('×' + s.total, W - 10, 26);
@@ -1044,6 +1050,7 @@ function frame(now) {
 
 resize();
 game.mode = readMode();
+game.debug = readDebug();
 game.best = loadBest();
 startSession(readSeed());
 requestAnimationFrame(frame);

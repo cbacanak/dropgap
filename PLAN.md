@@ -539,6 +539,33 @@ noktasıyla gittiyse çeşitliliğe ihtiyaç gösterilmedi; hiçbir test
 bank katmanı bu kuralla çıktı, bu ikisi aynı kuralla girmiyor.
 Gerekirse Aşama 3 sonrası dönülür.
 
+### Aşama 2 kapandı (11 Eyl)
+
+**2e kapanış, niteliksel:** sıkılma kontrol noktasıyla gitti, kesikli
+iz işini yapıyor, "iyi gidiyor." Bunlar 2e'nin hedefleriydi ve
+karşılandı.
+
+**Ama kayıt:** merdiven v3 hiç ölçülmedi. Ölüm dağılımı (dünya, kesik
+seviyesi, sönme adımı) merdiveni ayarlamak içindi ve toplanmadı.
+Merdiven şu an **ayarsız** — "doğru" değil, "kabul edilebilir." Ayar
+verisi test kullanıcılarından gelecek; 5 platformda sönme adımlarının
+ayırt edilip edilmediği (adımlar arası 0,05–0,07 sn) ve 45/61'deki
+dünya geçişinin yükü özellikle bilinmiyor.
+
+**Üst bant kararı (ekran görüntüsünden):** tohum ve merdiven bilgisi
+(`w1 · full · 1/6`) oyuncu için gürültü — kayıt aracıydı, `?debug=1`
+arkasına gitti. Oyuncunun gördüğü: solda mod kelimesi, ortada büyük tur
+numarası, sağda toplam ve rekor, altında şerit. Günlük mod gelince
+"#N" gün numarası tohumun yerini alacak — o anlamlı, tohum değil.
+
+**Aşama 3 öncesi şart:** bu haliyle iki dış kişiye oynatmak. Aşama 2'nin
+sonu dış test görmedi; jest üç kez, düzen bir kez, merdiven üç kez
+değişti. Yayından önce dış göz.
+
+**Aşama 3 sırası:** günlük tohum (kesikli iz seansa da girer — adaleti
+değiştirmiyor, günlük mod yayınlanan mod), paylaşım kartı, yayın.
+Sonra üç-dört hafta.
+
 Aşama 3'e kalan: günlük tohum, paylaşım kartı, yayın. Sonra üç-dört
 hafta bekleme. Bütün proje o beklemenin cevabına bağlı.
 
