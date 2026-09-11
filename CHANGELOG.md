@@ -9,6 +9,26 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Endless ladder v3 (PLAN §2e.5), replacing the §2e.1 table. Two nested
+  sawtooths: the world sets the platform count (2, 3, 4, 5), each world
+  climbs through dash levels (full, light, dashed, more dashed, sparse
+  dots), and each dash level walks the ball's fade-out from most seen
+  to least: four steps with two platforms (after the second bounce, near
+  the second platform, halfway, right after the first bounce), six with
+  three or more (near the third platform, halfway to it, after the
+  second bounce, then as before); the ceiling is the third platform.
+  Two rounds per step; the checkpoint is the step. A new dash level
+  restarts the fade; a new world adds a platform and returns the bars
+  to full. The widest bucket goes ×1 → ×2 at world 3 and ×2 → ×3 at
+  world 4's second level. Thirteen rows, 152 rounds; after the table
+  the last step holds. Bar endpoints always stay. The platform strength
+  lever and the endpoints-only drawing are gone from endless. One place
+  (`ENDLESS_LADDER`), one row per (world, dash level); adding a world is
+  adding rows. The session is untouched.
+- Dashed trail (PLAN §2e.4, finding 3), endless only: once the ball is
+  gone, the path the player saw stays as a faint dashed line while the
+  bucket is placed, and disappears when the result plays. It shortens
+  step by step down the ladder and comes back in full in a new world.
 - The first bounce carries information again (PLAN §2e.4, finding 2).
   The ball's drop x now spans the whole width (40 to 360 instead of 110
   to 290), so the first platform sits anywhere across the field. The
