@@ -386,6 +386,7 @@ const game = {
   firstBounce: null, fadeStartT: 0, flashedFirst: false,
   bucket: { left: 0, right: 0 },
   drag: null, reveal: null, flashes: [], rings: [],
+  modeWord: { x0: 0, x1: 0 },   // where the header's mode word was drawn this frame, for the tap
 };
 
 function readSeed() {
@@ -399,7 +400,7 @@ function writeSeed(seed) {
 }
 function modeCfg() { return MODES[game.mode]; }
 function roundLimit() { return modeCfg().rounds; }
-// The only way between modes: the small word at the bottom left of the end screen.
+// The only way between modes: the small word in the header, next to the seed, in both modes.
 function switchMode() {
   game.mode = game.mode === 'endless' ? 'session' : 'endless';
   startSession(game.session.seed);
@@ -609,9 +610,12 @@ canvas.addEventListener('pointerdown', e => {
   if (e.button != null && e.button !== 0) return;
   e.preventDefault();
   if (game.drag) return;
+  {
+    const p = toWorld(e), mw = game.modeWord;                              // the mode word in the header
+    if (p.y < 0 && p.y >= -HEADER_H && p.x >= mw.x0 - 12 && p.x <= mw.x1 + 12) { switchMode(); return; }
+  }
   if (canAdvance()) {
     const p = toWorld(e);
-    if (game.state === 'summary' && p.x <= 90 && p.y >= H - 40) { switchMode(); return; }   // the small mode word, bottom left
     if (bankAvailable()) {
       const b = bankPill();
       if (p.x >= b.x - 10 && p.x <= b.x + b.w + 10 && p.y >= b.y - 10 && p.y <= b.y + b.h + 10) { bank(); return; }
@@ -843,8 +847,13 @@ function drawHeader() {
   ctx.textBaseline = 'alphabetic';
   ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 14px ${FONT}`;
   ctx.fillText('#' + s.seed, 10, 25);
-  ctx.textAlign = 'center'; ctx.fillStyle = C.dim;
   const endless = game.mode === 'endless';
+  const wordX = 10 + ctx.measureText('#' + s.seed).width + 10;                // the way into the other mode, small, always there
+  ctx.fillStyle = C.dim; ctx.font = `500 11px ${FONT}`;
+  const word = endless ? 'session' : 'endless';
+  ctx.fillText(word, wordX, 25);
+  game.modeWord = { x0: wordX, x1: wordX + ctx.measureText(word).width };
+  ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 14px ${FONT}`;
   ctx.fillText(summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`, W / 2, 25);
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
   ctx.font = `600 ${(20 * (1 + 0.4 * bump(game.totalAge))).toFixed(1)}px ${FONT}`;
@@ -879,8 +888,10 @@ function stripFirst() {
   return Math.max(0, last - (STRIP_SLOTS - 1));
 }
 
-// Session or run end: one centred card (PLAN §7.1). The total, big; one bar per round under it;
-// "tap anywhere" at its foot. No button: this is the result, not a popup.
+// Session end: one centred card (PLAN §7.1). The total, big; one bar per round under it;
+// "tap anywhere" at its foot. No button: this is the result, not a popup. The endless branch is
+// the run-end card; since the band checkpoint (§2e.3) a run has no end inside the game, so that
+// branch is never reached. It stays, unchanged, in case a way out returns.
 function drawSummary() {
   const s = game.session, age = game.summaryAge;
   ctx.textBaseline = 'alphabetic';
@@ -938,8 +949,6 @@ function drawSummary() {
   if (age > 1.3) {
     ctx.textAlign = 'center'; ctx.fillStyle = C.dim; ctx.font = `500 13px ${FONT}`;
     ctx.fillText('tap anywhere', W / 2, cy0 + chh - 24);
-    ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 12px ${FONT}`;   // the way into the other mode; no menu
-    ctx.fillText(endless ? 'session' : 'endless', 12, H - 12);
   }
 }
 

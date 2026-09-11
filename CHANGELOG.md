@@ -9,6 +9,13 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- The mode word ("endless" in the session, "session" in endless) moves
+  from the end card to the header, next to the seed, small, always
+  visible in both modes; a tap switches to the other mode. With the
+  band checkpoint an endless run has no end inside the game, so the
+  run-end card is never reached and no longer needed; its code stays
+  and is not called. The session end card is unchanged apart from the
+  word leaving it.
 - Endless band checkpoint (PLAN §2e.3). A miss no longer ends the run:
   it sends the run back to the first round of its ladder band (a miss
   at round 20 restarts at 19, the start of the 19–21 band). The rounds
