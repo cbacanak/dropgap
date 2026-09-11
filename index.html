@@ -654,6 +654,10 @@ function applyDrag(p) {
   b.left = cx - w / 2; b.right = cx + w / 2;
 }
 
+// The bucket is locked while the ball can still be seen, in both modes: no touch lands until the
+// fade has finished and the ball is gone. Locked, the bucket is drawn faint; that is the only sign.
+function bucketLocked() { return game.state === 'observe' && observeT() < game.fadeStartT + FADE_T; }
+
 function canAdvance() {
   if (game.state === 'summary') return game.summaryAge > 0.6;
   return game.state === 'result' || (game.state === 'reveal' && game.reveal.shown && game.reveal.age > 0.6);
@@ -675,7 +679,7 @@ canvas.addEventListener('pointerdown', e => {
     }
     advance(); return;
   }
-  if (game.state !== 'observe') return;
+  if (game.state !== 'observe' || bucketLocked()) return;
   const p = toWorld(e);
   game.drag = { id: e.pointerId, startX: p.x, startY: p.y, startCx: bucketCx(), startW: bucketWidth(), moved: false };
   try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
@@ -688,7 +692,7 @@ canvas.addEventListener('pointermove', e => {
     return;
   }
   if (e.pointerType === 'mouse') {
-    canvas.style.cursor = game.state === 'observe' ? 'grab' : (canAdvance() ? 'pointer' : 'default');
+    canvas.style.cursor = game.state === 'observe' ? (bucketLocked() ? 'default' : 'grab') : (canAdvance() ? 'pointer' : 'default');
   }
 });
 canvas.addEventListener('pointerup', e => {
@@ -807,7 +811,7 @@ function draw() {
   // Bucket
   const b = game.bucket, bottom = RIM_Y + BUCKET_DEPTH, w = bucketWidth(), cx = bucketCx();
   const active = game.state === 'observe';
-  ctx.globalAlpha = active ? 1 : 0.75;
+  ctx.globalAlpha = active ? (bucketLocked() ? 0.3 : 1) : 0.75;      // faint while locked: the ball is still to be watched
   ctx.fillStyle = 'rgba(255,255,255,0.035)';
   ctx.fillRect(b.left, RIM_Y, w, BUCKET_DEPTH);
   ctx.strokeStyle = C.bucket; ctx.lineWidth = 3; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -1036,7 +1040,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, bucketLocked, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>

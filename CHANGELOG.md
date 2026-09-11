@@ -9,6 +9,10 @@ said. See [README.md](README.md) and [PLAN.md](PLAN.md).
 
 ### Changed
 
+- Bucket lock, both modes: while the ball can be seen, and while it
+  fades, a touch does nothing. Once the ball is gone the bucket opens.
+  Locked, the bucket is drawn faint; when it opens it returns to
+  normal. No other sign. Watch first, then place.
 - Endless ladder v3 (PLAN §2e.5), replacing the §2e.1 table. Two nested
   sawtooths: the world sets the platform count (2, 3, 4, 5), each world
   climbs through dash levels (full, light, dashed, more dashed, sparse
