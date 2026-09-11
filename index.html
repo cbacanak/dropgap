@@ -133,30 +133,36 @@ const STRIP_SLOTS = 5;                   // the strip shows the last five rounds
 //   minMult    the lowest bucket step still on the ladder; the steps below it are gone
 const ROUNDS_PER_STEP = 2;
 const ENDLESS_LADDER = [
-  { world: 1, platforms: 2, dash: 'full',   minMult: 1 },   // rounds 1–8
-  { world: 2, platforms: 3, dash: 'full',   minMult: 1 },   // 9–20
-  { world: 2, platforms: 3, dash: 'light',  minMult: 1 },   // 21–32
-  { world: 2, platforms: 3, dash: 'dashed', minMult: 1 },   // 33–44
-  { world: 3, platforms: 4, dash: 'full',   minMult: 2 },   // 45–56
-  { world: 3, platforms: 4, dash: 'light',  minMult: 2 },   // 57–68
-  { world: 3, platforms: 4, dash: 'dashed', minMult: 2 },   // 69–80
-  { world: 3, platforms: 4, dash: 'more',   minMult: 2 },   // 81–92
-  { world: 4, platforms: 5, dash: 'full',   minMult: 2 },   // 93–104
-  { world: 4, platforms: 5, dash: 'light',  minMult: 3 },   // 105–116
-  { world: 4, platforms: 5, dash: 'dashed', minMult: 3 },   // 117–128
-  { world: 4, platforms: 5, dash: 'more',   minMult: 3 },   // 129–140
-  { world: 4, platforms: 5, dash: 'dots',   minMult: 3 },   // 141–152; after the table the last step holds (world 5+ is §2e.6)
+  { world: 1, platforms: 2, dash: 'full',   minMult: 1 },   // rounds 1–12 (six fade steps)
+  { world: 2, platforms: 3, dash: 'full',   minMult: 1 },   // 13–28 (eight steps from here on)
+  { world: 2, platforms: 3, dash: 'light',  minMult: 1 },   // 29–44
+  { world: 2, platforms: 3, dash: 'dashed', minMult: 1 },   // 45–60
+  { world: 3, platforms: 4, dash: 'full',   minMult: 2 },   // 61–76
+  { world: 3, platforms: 4, dash: 'light',  minMult: 2 },   // 77–92
+  { world: 3, platforms: 4, dash: 'dashed', minMult: 2 },   // 93–108
+  { world: 3, platforms: 4, dash: 'more',   minMult: 2 },   // 109–124
+  { world: 4, platforms: 5, dash: 'full',   minMult: 2 },   // 125–140
+  { world: 4, platforms: 5, dash: 'light',  minMult: 3 },   // 141–156
+  { world: 4, platforms: 5, dash: 'dashed', minMult: 3 },   // 157–172
+  { world: 4, platforms: 5, dash: 'more',   minMult: 3 },   // 173–188
+  { world: 4, platforms: 5, dash: 'dots',   minMult: 3 },   // 189–204; after the table the last step holds (world 5+ is §2e.6)
 ];
 // Where the ball is gone, as a code, from the round's geometry, never from a clock:
-//   after<k>  right after bounce k (bounce k is seen, then the ball fades)
-//   half<k>   gone by halfway along the path from bounce k to the next platform
-//   near<k>   gone just before platform k
+//   after<k>    right after bounce k (bounce k is seen, then the ball fades)
+//   near<k>     gone just before platform k
+//   quarter<k>, half<k>, threeQ<k>
+//               gone a quarter, half, three quarters of the way along the part of the path from
+//               bounce k to the next platform that after<k> does not already show (after<k> shows
+//               the bounce plus the fade, so a geometric quarter of the hop would already be
+//               inside it; the steps are measured on what is left to lose)
 // One sequence per platform count, from most seen to least; the ceiling is "near the third
-// platform", so with four or five platforms the later bounces are never shown.
+// platform", so with four or five platforms the later bounces are never shown. The 1–2 segment
+// has the quarter points; the 2–3 segment only its halfway.
 const FADE_SEQ = {
-  2: ['after2', 'near2', 'half1', 'after1'],
-  3: ['near3', 'half2', 'after2', 'near2', 'half1', 'after1'],   // three or more platforms
+  2: ['after2', 'near2', 'threeQ1', 'half1', 'quarter1', 'after1'],
+  3: ['near3', 'half2', 'after2', 'near2', 'threeQ1', 'half1', 'quarter1', 'after1'],   // three or more platforms
 };
+const FADE_FRACTION = { quarter: 0.25, half: 0.5, threeQ: 0.75 };
 const DASH = { full: [], light: [18, 6], dashed: [10, 10], more: [5, 12], dots: [0.01, 16] };
 function fadeSeqFor(platforms) { return FADE_SEQ[Math.min(platforms, 3)]; }
 function rowRounds(row) { return fadeSeqFor(row.platforms).length * ROUNDS_PER_STEP; }
@@ -187,21 +193,16 @@ function fadeStartFor(sim, fade, seenAfterBounce) {
   const kind = fade.replace(/\d+$/, ''), k = parseInt(fade.slice(kind.length), 10);
   const ev = sim.events, tB = i => ev[i - 1].t;                             // time of bounce i
   const nextT = i => i < ev.length ? tB(i + 1) : sim.crossT - 0.25;          // after bounce i: the next platform, or the rim
+  const after = i => Math.min(tB(i) + seenAfterBounce, nextT(i) - FADE_T - 0.04);   // fade start for after<i>
   let t;
-  if (kind === 'after') t = Math.min(tB(k) + seenAfterBounce, nextT(k) - FADE_T - 0.04);
-  else if (kind === 'half') t = halfwayT(sim, tB(k), nextT(k)) - FADE_T;                // gone by the halfway point
-  else t = tB(k) - FADE_T - 0.04;                                           // 'near' platform k
+  if (kind === 'after') t = after(k);
+  else if (kind === 'near') t = tB(k) - FADE_T - 0.04;
+  else {                                                                    // a fraction of what after<k> leaves to lose
+    const goneA = after(k) + FADE_T, goneB = nextT(k) - 0.04;                 // gone-moments of after<k> and near<k+1>
+    t = goneA + FADE_FRACTION[kind] * (goneB - goneA) - FADE_T;
+  }
   const seen = kind === 'near' ? k - 1 : k;                                 // the last bounce this code shows
   return Math.max(t, tB(Math.max(1, seen)) + 0.06);
-}
-function halfwayT(sim, t0, t1) {   // the time at which the ball has covered half the path length between t0 and t1
-  const i0 = Math.round(t0 / DT), i1 = Math.round(t1 / DT);
-  const seg = i => Math.hypot(sim.xs[i] - sim.xs[i - 1], sim.ys[i] - sim.ys[i - 1]);
-  let total = 0;
-  for (let i = i0 + 1; i <= i1; i++) total += seg(i);
-  let acc = 0;
-  for (let i = i0 + 1; i <= i1; i++) { acc += seg(i); if (acc >= total / 2) return i * DT; }
-  return (t0 + t1) / 2;
 }
 // Endless keeps one number on this device: the best total ever reached. Shown in the header during
 // a run. Just the number; no advice, no warnings.
@@ -1040,7 +1041,7 @@ requestAnimationFrame(frame);
 
 // Tiny hook for automated checks; not part of the game.
 window.__dropgap = {
-  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, bucketLocked, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
+  game, W, H, RIM_Y, DT, SESSION_ROUNDS, STRIP_SLOTS, MODES, DIFFICULTY, SEEN_AFTER_BOUNCE_MAX, FADE_T, generateLevel, simulate, classify, commit, advance, bank, bankAvailable, bankPill, switchMode, stripFirst, bankLabel, BEST_KEY, ENDLESS_LADDER, FADE_SEQ, FADE_FRACTION, DASH, ROUNDS_PER_STEP, stepFor, rulesFor, bandsFor, fadeStartFor, maxBucketWidth, stepWidth, tapDrops, TAP_DROP_Y, bucketLocked, checkpoint, startSession, startRound, roundSeed, scoreFor, multiplier,
   setBucket(left, right) { game.bucket.left = left; game.bucket.right = right; },
 };
 </script>
