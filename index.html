@@ -936,9 +936,9 @@ function drawHeader() {
   const round = summary ? game.mode : endless ? `round ${s.index + 1}` : `round ${s.index + 1} / ${SESSION_ROUNDS}`;
   ctx.fillText(round, W / 2, 26);
   if (game.debug && endless && !summary) {                                 // where the run is on the ladder: world, dash level, fade step
-    const where = `w${game.rules.world} · ${game.rules.dash} · ${game.rules.step}/${game.rules.steps}`;
+    const where = `w${game.rules.world} · ${game.rules.dash} · ${game.rules.step}/${game.rules.steps}`, rw = ctx.measureText(round).width;
     ctx.textAlign = 'left'; ctx.fillStyle = C.faint; ctx.font = `500 11px ${FONT}`;
-    ctx.fillText(where, W / 2 + ctx.measureText(round).width / 2 + 10, 26);
+    ctx.fillText(where, W / 2 + rw / 2 + 10, 26);
   }
   // Right: the total, and under it the best
   ctx.textAlign = 'right'; ctx.fillStyle = C.text;
